@@ -51,10 +51,21 @@ foreach f $design_files {
     }
 }
 
-# Force VHDL-2008 so TEXTIO COE-loading works during elaboration / synthesis.
+# Set file types:
+#   - VHDL-2008 for the files that genuinely need it (TEXTIO COE loaders).
+#   - Plain VHDL (-93) for everything else, because IP Integrator Module
+#     References cannot reference a VHDL-2008 file (Vivado restriction).
+set vhdl2008_files [list \
+    "$proj_dir/src/irMem.vhd" \
+    "$proj_dir/src/dMem.vhd" \
+]
 foreach f $design_files {
     if {[file exists $f]} {
-        set_property file_type {VHDL 2008} [get_files $f]
+        if {[lsearch -exact $vhdl2008_files $f] >= 0} {
+            set_property file_type {VHDL 2008} [get_files $f]
+        } else {
+            set_property file_type {VHDL} [get_files $f]
+        }
     }
 }
 
