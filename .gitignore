@@ -1,0 +1,23 @@
+# GHDL build artifacts
+build/
+
+# Vivado project / build output
+lab5_grisc/
+*.jou
+*.log
+*.str
+*.pb
+*.wdb
+*.wcfg
+.Xil/
+.cache/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+*.swp
+*.swo
+.vscode/
+.idea/
