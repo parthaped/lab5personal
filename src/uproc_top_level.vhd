@@ -38,15 +38,15 @@ entity uproc_top_level is
         btn_0  : in  std_logic;            -- active-high reset button
 
         -- Pmod USBUART (silkscreen names per the lab manual reference BD).
-        -- Per Lab 3 (page 5):
-        --   "CTS (clear to send) and RTS (request to send) are optional
-        --    signals that will be ignored as we do not need flow control,
-        --    so those pins will need to be tied to ground in our main
-        --    design (declare and assign appropriately in the VHDL code)."
+        -- Per Lab 5 manual page 11:
+        --   "you will need to add ports that are tied to high impedance
+        --    (Our CTS and RTS signals for the UART PMOD).  ... it stays
+        --    unconnected to be tied to high impedance via a tri-state
+        --    buffer."
         --   TXD = host's TXD pin, FPGA INPUT  (host -> FPGA)
         --   RXD = host's RXD pin, FPGA OUTPUT (FPGA -> host)
-        --   CTS = FPGA OUTPUT tied to '0' (no flow control)
-        --   RTS = FPGA OUTPUT tied to '0' (no flow control)
+        --   CTS = FPGA OUTPUT, driven to 'Z' (tri-state, high impedance)
+        --   RTS = FPGA OUTPUT, driven to 'Z' (tri-state, high impedance)
         TXD    : in  std_logic;
         RXD    : out std_logic;
         RTS    : out std_logic;
@@ -125,11 +125,12 @@ begin
         generic map (STABLE => 1250000)
         port map ( clk => clk, btn => btn_0, dbn => rst );
 
-    -- CTS and RTS tied to ground per Lab 3 (no hardware flow control).
-    -- The BD does the same with a shared 1-bit xlconstant feeding both
-    -- output pins.
-    CTS <= '0';
-    RTS <= '0';
+    -- CTS and RTS tied to high impedance per Lab 5 manual page 11
+    -- ("tied to high impedance via a tri-state buffer").  Vivado will
+    -- infer an OBUFT for each.  In the BD flow these ports are simply
+    -- left unconnected on the BD canvas to achieve the same effect.
+    CTS <= 'Z';
+    RTS <= 'Z';
 
     u_ckcpu : entity work.clock_div
         generic map (DIV => 1)

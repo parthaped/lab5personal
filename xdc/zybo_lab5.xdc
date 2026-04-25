@@ -25,10 +25,10 @@ set_property -dict { PACKAGE_PIN K18 IOSTANDARD LVCMOS33 } [get_ports btn_0]
 # silkscreen and the lab manual reference BD:
 #   TXD = Pmod's TXD pin (JE3, FPGA INPUT,  host -> FPGA)
 #   RXD = Pmod's RXD pin (JE2, FPGA OUTPUT, FPGA -> host)
-#   CTS = Pmod's CTS pin (JE4, FPGA OUTPUT tied to '0', no flow control)
-#   RTS = Pmod's RTS pin (JE1, FPGA OUTPUT tied to '0', no flow control)
-# Per Lab 3 page 5: CTS and RTS are unused flow-control pins that must be
-# tied to ground in the design.
+#   CTS = Pmod's CTS pin (JE4, FPGA OUTPUT, tri-stated to high-Z)
+#   RTS = Pmod's RTS pin (JE1, FPGA OUTPUT, tri-stated to high-Z)
+# Per Lab 5 manual page 11: CTS and RTS are unused flow-control pins that
+# stay unconnected and are "tied to high impedance via a tri-state buffer".
 ###############################################################################
 set_property -dict { PACKAGE_PIN J15 IOSTANDARD LVCMOS33 } [get_ports TXD] ;# JE3
 set_property -dict { PACKAGE_PIN W16 IOSTANDARD LVCMOS33 } [get_ports RXD] ;# JE2

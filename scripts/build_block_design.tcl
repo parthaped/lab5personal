@@ -91,15 +91,19 @@ set_property -dict [list \
 # --------- 5. external ports ---------
 # Names match the Pmod USBUART silkscreen convention used in the lab manual
 # reference BD:
-#   TXD = Pmod's TXD pin (FPGA INPUT, host -> FPGA)
+#   TXD = Pmod's TXD pin (FPGA INPUT,  host -> FPGA)
 #   RXD = Pmod's RXD pin (FPGA OUTPUT, FPGA -> host)
-#   CTS = Pmod's CTS pin (FPGA OUTPUT tied to '0', no flow control)
-#   RTS = Pmod's RTS pin (FPGA OUTPUT tied to '0', no flow control)
+#   CTS = Pmod's CTS pin (FPGA OUTPUT, left UNCONNECTED in the BD)
+#   RTS = Pmod's RTS pin (FPGA OUTPUT, left UNCONNECTED in the BD)
 #
-# Per Lab 3 (page 5): CTS and RTS are unused flow-control pins that must be
-# tied to ground in the main design.  Both are driven by a single shared
-# 1-bit xlconstant `gnd_const` (matches the synthesized RTL view from Lab 3
-# where CTS_OBUF_inst and RTS_OBUF_inst share the same GND source).
+# Per Lab 5 manual page 11:
+#   "you will need to add ports that are tied to high impedance (Our CTS
+#    and RTS signals for the UART PMOD).  ... That's it, it stays
+#    unconnected to be tied to high impedance via a tri-state buffer."
+#
+# So CTS and RTS are declared as top-level output ports with NO internal
+# driver - Vivado infers an OBUFT (output tri-state buffer) and drives
+# the pin to 'Z'.  No xlconstant, no cts_low.
 #
 # btn is named btn_0 to match the lab BD (Vivado's auto-rename convention
 # when "Make External" is used on a single-bit pin).
@@ -118,15 +122,6 @@ create_bd_port -dir O -from 5 -to 0 vga_g
 create_bd_port -dir O -from 4 -to 0 vga_b
 create_bd_port -dir O vga_hs
 create_bd_port -dir O vga_vs
-
-# Shared 1-bit ground constant for CTS / RTS tie-off (no hardware flow
-# control).  Single block fans out to both output pins, matching the
-# Lab 3 synthesized RTL view.
-create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant gnd_const
-set_property -dict [list \
-    CONFIG.CONST_VAL  {0} \
-    CONFIG.CONST_WIDTH {1} \
-] [get_bd_cells gnd_const]
 
 # --------- 6. wiring ---------
 # Wrapper around connect_bd_net that hard-fails if either side resolves to
@@ -239,10 +234,8 @@ cn [get_bd_pins uart_0/charRec]            [get_bd_pins controls_0/charRec]
 #   uart.tx -> RXD external (Pmod RX, FPGA out)
 cn [get_bd_ports TXD]                      [get_bd_pins uart_0/rx]
 cn [get_bd_pins uart_0/tx]                 [get_bd_ports RXD]
-# CTS / RTS tie-offs (no hardware flow control - see Lab 3 page 5).
-# A single shared xlconstant fans out to both output ports.
-cn [get_bd_pins gnd_const/dout]            [get_bd_ports CTS]
-cn [get_bd_pins gnd_const/dout]            [get_bd_ports RTS]
+# CTS and RTS are intentionally left unconnected per Lab 5 manual page 11
+# - Vivado will infer OBUFT tri-state buffers and drive the pins to high-Z.
 
 # --------- 7. validate, layout, wrap, save ---------
 # regenerate_bd_layout uses Vivado's default "inputs left, outputs right"
