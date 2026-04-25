@@ -58,7 +58,7 @@ architecture sim of tb_top is
     signal TXD    : std_logic := '1';                -- host -> FPGA
     signal RXD    : std_logic;                       -- FPGA -> host
     signal RTS    : std_logic := '0';
-    signal CTS    : std_logic;
+    signal CTS    : std_logic := '0';                -- now an input to DUT
 
     signal vga_r  : std_logic_vector(4 downto 0);    -- tb_vga_r
     signal vga_g  : std_logic_vector(5 downto 0);    -- tb_vga_g

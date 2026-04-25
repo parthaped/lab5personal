@@ -76,12 +76,33 @@ foreach coe_path [list "$proj_dir/coe/text.coe" "$proj_dir/coe/data.coe"] {
     }
 }
 
-# Add simulation sources.
-if {[file exists "$proj_dir/sim/tb_top.vhd"]} {
-    add_files -fileset sim_1 -norecurse "$proj_dir/sim/tb_top.vhd"
-    set_property file_type {VHDL 2008} [get_files "$proj_dir/sim/tb_top.vhd"]
+# Add simulation sources.  Both the original behavioural tb and the leaner
+# tb_top_lite (which is friendlier to Vivado xsim's WDB / RAM usage) are
+# added; the lite one is set as the default top because it is reliable on
+# Windows.  Switch back to tb_top with:
+#    set_property top tb_top [get_filesets sim_1]
+foreach tb_path [list \
+    "$proj_dir/sim/tb_top.vhd" \
+    "$proj_dir/sim/tb_top_lite.vhd" \
+] {
+    if {[file exists $tb_path]} {
+        add_files -fileset sim_1 -norecurse $tb_path
+        set_property file_type {VHDL 2008} [get_files $tb_path]
+    }
+}
+if {[file exists "$proj_dir/sim/tb_top_lite.vhd"]} {
+    set_property top tb_top_lite [get_filesets sim_1]
+} elseif {[file exists "$proj_dir/sim/tb_top.vhd"]} {
     set_property top tb_top [get_filesets sim_1]
 }
+
+# Cap the xsim run-time and disable "log all signals" - this is what stops
+# the BRAM `mem` arrays in irMem/dMem from being pulled into the WDB and
+# crashing xsim with out-of-memory.
+set_property -name {xsim.simulate.runtime}         -value {50us} \
+    -objects [get_filesets sim_1]
+set_property -name {xsim.simulate.log_all_signals} -value {false} \
+    -objects [get_filesets sim_1]
 
 # Add the default wave configuration file (lab manual layout).
 if {[file exists "$proj_dir/sim/tb_top.wcfg"]} {
