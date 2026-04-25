@@ -8,7 +8,9 @@ lab5_grisc/
 *.str
 *.pb
 *.wdb
+# wcfg files: ignore everything except the canonical sim wave config
 *.wcfg
+!sim/tb_top.wcfg
 .Xil/
 .cache/
 

@@ -83,6 +83,12 @@ if {[file exists "$proj_dir/sim/tb_top.vhd"]} {
     set_property top tb_top [get_filesets sim_1]
 }
 
+# Add the default wave configuration file (lab manual layout).
+if {[file exists "$proj_dir/sim/tb_top.wcfg"]} {
+    add_files -fileset sim_1 -norecurse "$proj_dir/sim/tb_top.wcfg"
+    set_property xsim.view "$proj_dir/sim/tb_top.wcfg" [get_filesets sim_1]
+}
+
 # Add XDC.
 if {[file exists "$proj_dir/xdc/zybo_lab5.xdc"]} {
     add_files -fileset constrs_1 -norecurse "$proj_dir/xdc/zybo_lab5.xdc"

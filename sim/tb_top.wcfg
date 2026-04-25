@@ -1,0 +1,137 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<wave_config>
+   <wave_state>
+   </wave_state>
+   <db_ref_list>
+      <db_ref path="tb_top.wdb" id="1" type="auto">
+         <top_modules>
+            <top_module name="tb_top" />
+         </top_modules>
+      </db_ref>
+   </db_ref_list>
+   <zoom_setting>
+      <ZoomStartTime time="0fs"/>
+      <ZoomEndTime time="200us"/>
+      <Cursor1Time time="0fs"/>
+   </zoom_setting>
+   <column_width_setting>
+      <NameColumnWidth column_width="220"/>
+      <ValueColumnWidth column_width="80"/>
+   </column_width_setting>
+   <WVObjectSize size="20" />
+
+   <wvobject fp_name="/tb_top/dut/u_ctrl/state" type="enum">
+      <obj_property name="ElementShortName">ps</obj_property>
+      <obj_property name="ObjectShortName">ps</obj_property>
+   </wvobject>
+
+   <wvobject fp_name="/tb_top/dut/u_ctrl/pc_sig" type="array">
+      <obj_property name="ElementShortName">pc[13:0]</obj_property>
+      <obj_property name="ObjectShortName">pc[13:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+
+   <wvobject fp_name="/tb_top/dut/u_ctrl/opcode" type="array">
+      <obj_property name="ElementShortName">opcode[4:0]</obj_property>
+      <obj_property name="ObjectShortName">opcode[4:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+
+   <wvobject fp_name="/tb_top/tb_clk" type="logic">
+      <obj_property name="ElementShortName">tb_clk</obj_property>
+      <obj_property name="ObjectShortName">tb_clk</obj_property>
+   </wvobject>
+
+   <wvobject fp_name="/tb_top/vga_r" type="array">
+      <obj_property name="ElementShortName">tb_vga_r[4:0]</obj_property>
+      <obj_property name="ObjectShortName">tb_vga_r[4:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+
+   <wvobject fp_name="/tb_top/vga_b" type="array">
+      <obj_property name="ElementShortName">tb_vga_b[4:0]</obj_property>
+      <obj_property name="ObjectShortName">tb_vga_b[4:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+
+   <wvobject fp_name="/tb_top/vga_g" type="array">
+      <obj_property name="ElementShortName">tb_vga_g[5:0]</obj_property>
+      <obj_property name="ObjectShortName">tb_vga_g[5:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+
+   <wvobject fp_name="/tb_top/dut/rID1" type="array">
+      <obj_property name="ElementShortName">reg1addr[4:0]</obj_property>
+      <obj_property name="ObjectShortName">reg1addr[4:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+
+   <wvobject fp_name="/tb_top/dut/wr_en1" type="logic">
+      <obj_property name="ElementShortName">controls_0_wr_enR1</obj_property>
+      <obj_property name="ObjectShortName">controls_0_wr_enR1</obj_property>
+   </wvobject>
+
+   <wvobject fp_name="/tb_top/dut/rID2" type="array">
+      <obj_property name="ElementShortName">reg2addr[4:0]</obj_property>
+      <obj_property name="ObjectShortName">reg2addr[4:0]</obj_property>
+      <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
+   </wvobject>
+
+   <wvobject fp_name="/tb_top/dut/regrD1" type="array">
+      <obj_property name="ElementShortName">reg1data[15:0]</obj_property>
+      <obj_property name="ObjectShortName">reg1data[15:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+
+   <wvobject fp_name="/tb_top/dut/regrD2" type="array">
+      <obj_property name="ElementShortName">reg2data[15:0]</obj_property>
+      <obj_property name="ObjectShortName">reg2data[15:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+
+   <wvobject fp_name="/tb_top/dut/u_ctrl/imm16" type="array">
+      <obj_property name="ElementShortName">imm_arg[15:0]</obj_property>
+      <obj_property name="ObjectShortName">imm_arg[15:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+
+   <wvobject fp_name="/tb_top/dut/u_charSend" type="array">
+      <obj_property name="ElementShortName">charSend[7:0]</obj_property>
+      <obj_property name="ObjectShortName">charSend[7:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+
+   <wvobject fp_name="/tb_top/dut/u_charRec" type="array">
+      <obj_property name="ElementShortName">charRec[7:0]</obj_property>
+      <obj_property name="ObjectShortName">charRec[7:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+
+   <wvobject fp_name="/tb_top/dut/u_newChar" type="logic">
+      <obj_property name="ElementShortName">newChar</obj_property>
+      <obj_property name="ObjectShortName">newChar</obj_property>
+   </wvobject>
+
+   <wvobject fp_name="/tb_top/dut/fb_we" type="logic">
+      <obj_property name="ElementShortName">fbWr_en</obj_property>
+      <obj_property name="ObjectShortName">fbWr_en</obj_property>
+   </wvobject>
+
+   <wvobject fp_name="/tb_top/dut/fb_addr1" type="array">
+      <obj_property name="ElementShortName">fbAddr1[11:0]</obj_property>
+      <obj_property name="ObjectShortName">fbAddr1[11:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+
+   <wvobject fp_name="/tb_top/dut/fb_dout1" type="array">
+      <obj_property name="ElementShortName">fbDout1[15:0]</obj_property>
+      <obj_property name="ObjectShortName">fbDout1[15:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+
+   <wvobject fp_name="/tb_top/dut/fb_din" type="array">
+      <obj_property name="ElementShortName">fbDin1[15:0]</obj_property>
+      <obj_property name="ObjectShortName">fbDin1[15:0]</obj_property>
+      <obj_property name="Radix">HEXRADIX</obj_property>
+   </wvobject>
+</wave_config>

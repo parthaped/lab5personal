@@ -217,6 +217,9 @@ cn [get_bd_pins uart_inst/tx]              [get_bd_ports RXD]
 cn [get_bd_pins cts_low/dout]              [get_bd_ports CTS]
 
 # --------- 7. validate, layout, wrap, save ---------
+# regenerate_bd_layout uses Vivado's default "inputs left, outputs right"
+# heuristic. If a pin still ends up on the wrong side after the script runs,
+# right-click the BD canvas in Vivado and choose "Regenerate Layout" (F6).
 regenerate_bd_layout
 validate_bd_design
 save_bd_design
