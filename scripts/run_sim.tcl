@@ -35,15 +35,23 @@ set_property -name {xsim.simulate.runtime}         -value {50us} \
 set_property -name {xsim.simulate.log_all_signals} -value {false} \
     -objects [get_filesets sim_1]
 
-# 3. Launch
+# 3. Make sure the lite waveform layout is the default view
+if {[file exists "$proj_dir/sim/tb_top_lite.wcfg"]} {
+    if {[llength [get_files -quiet -of [get_filesets sim_1] tb_top_lite.wcfg]] == 0} {
+        add_files -fileset sim_1 -norecurse "$proj_dir/sim/tb_top_lite.wcfg"
+    }
+    set_property xsim.view "$proj_dir/sim/tb_top_lite.wcfg" [get_filesets sim_1]
+}
+
+# 4. Launch
 launch_simulation
 puts ""
 puts "===================================================================="
 puts "Simulation launched with tb_top_lite (50 us, log_all_signals=false)."
 puts ""
-puts "If you previously added /tb_top/dut/u_dm/mem or /tb_top/dut/u_ir/mem"
-puts "to the wave window, REMOVE them now - they are 1 Mbit BRAM signal"
-puts "arrays and tracking them is what crashes xsim."
+puts {If you previously added /tb_top/dut/u_dm/mem or /tb_top/dut/u_ir/mem}
+puts {to the wave window, REMOVE them now - they are 1 Mbit BRAM signal}
+puts {arrays and tracking them is what crashes xsim.}
 puts ""
-puts "Look for [TX] and [RX] lines in the Tcl console / sim log."
+puts {Look for [TX] and [RX] lines in the Tcl console / sim log.}
 puts "===================================================================="
