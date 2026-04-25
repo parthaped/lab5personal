@@ -38,14 +38,19 @@ entity uproc_top_level is
         btn_0  : in  std_logic;            -- active-high reset button
 
         -- Pmod USBUART (silkscreen names per the lab manual reference BD).
+        -- Per Lab 3 (page 5):
+        --   "CTS (clear to send) and RTS (request to send) are optional
+        --    signals that will be ignored as we do not need flow control,
+        --    so those pins will need to be tied to ground in our main
+        --    design (declare and assign appropriately in the VHDL code)."
         --   TXD = host's TXD pin, FPGA INPUT  (host -> FPGA)
         --   RXD = host's RXD pin, FPGA OUTPUT (FPGA -> host)
-        --   CTS = host's CTS pin, FPGA INPUT, ignored (matches reference BD)
-        --   RTS = host's RTS pin, FPGA INPUT, ignored
+        --   CTS = FPGA OUTPUT tied to '0' (no flow control)
+        --   RTS = FPGA OUTPUT tied to '0' (no flow control)
         TXD    : in  std_logic;
         RXD    : out std_logic;
-        RTS    : in  std_logic;
-        CTS    : in  std_logic;
+        RTS    : out std_logic;
+        CTS    : out std_logic;
 
         -- Pmod VGA. We expose the full 5-6-5 channels straight out of
         -- pixel_pusher (matches the lab manual BD). The XDC connects only
@@ -120,9 +125,11 @@ begin
         generic map (STABLE => 1250000)
         port map ( clk => clk, btn => btn_0, dbn => rst );
 
-    -- CTS and RTS are unused inputs - the reference BD leaves both
-    -- unconnected internally. Vivado will warn about unread ports; safe
-    -- to ignore.
+    -- CTS and RTS tied to ground per Lab 3 (no hardware flow control).
+    -- The BD does the same with a shared 1-bit xlconstant feeding both
+    -- output pins.
+    CTS <= '0';
+    RTS <= '0';
 
     u_ckcpu : entity work.clock_div
         generic map (DIV => 1)

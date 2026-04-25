@@ -23,10 +23,12 @@ set_property -dict { PACKAGE_PIN K18 IOSTANDARD LVCMOS33 } [get_ports btn_0]
 ###############################################################################
 # UART on Pmod JE  (Pmod USBUART module). Port names match the Pmod
 # silkscreen and the lab manual reference BD:
-#   TXD = Pmod's TXD pin (JE3, FPGA INPUT, host -> FPGA)
+#   TXD = Pmod's TXD pin (JE3, FPGA INPUT,  host -> FPGA)
 #   RXD = Pmod's RXD pin (JE2, FPGA OUTPUT, FPGA -> host)
-#   CTS = Pmod's CTS pin (JE4, FPGA INPUT, ignored - matches reference BD)
-#   RTS = Pmod's RTS pin (JE1, FPGA INPUT, ignored)
+#   CTS = Pmod's CTS pin (JE4, FPGA OUTPUT tied to '0', no flow control)
+#   RTS = Pmod's RTS pin (JE1, FPGA OUTPUT tied to '0', no flow control)
+# Per Lab 3 page 5: CTS and RTS are unused flow-control pins that must be
+# tied to ground in the design.
 ###############################################################################
 set_property -dict { PACKAGE_PIN J15 IOSTANDARD LVCMOS33 } [get_ports TXD] ;# JE3
 set_property -dict { PACKAGE_PIN W16 IOSTANDARD LVCMOS33 } [get_ports RXD] ;# JE2
