@@ -28,34 +28,37 @@ proc add_module {ref inst_name} {
 }
 
 # --------- 2. add module references ---------
-add_module clock_div    clock_div_cpu
-add_module clock_div_25 clock_div_25_inst
-add_module debounce     debounce_inst
-add_module controls     controls_inst
-add_module regs         regs_inst
-add_module my_alu       my_alu_inst
-add_module framebuffer  framebuffer_inst
-add_module vga_ctrl     vga_ctrl_inst
-add_module pixel_pusher pixel_pusher_inst
-add_module uart         uart_inst
+# Cell instance names use Vivado's `<entity>_0` auto-naming convention so the
+# generated BD canvas matches the lab manual reference top-level diagram
+# row-for-row (e.g. the wr_enR1 net is named `controls_0_wr_enR1`).
+add_module clock_div    clock_div_0
+add_module clock_div_25 clock_div_25_0
+add_module debounce     debounce_0
+add_module controls     controls_0
+add_module regs         regs_0
+add_module my_alu       my_alu_0
+add_module framebuffer  framebuffer_0
+add_module vga_ctrl     vga_ctrl_0
+add_module pixel_pusher pixel_pusher_0
+add_module uart         uart_0
 
 # Generics
 set_property -dict [list \
     CONFIG.DIV {1} \
-] [get_bd_cells clock_div_cpu]
+] [get_bd_cells clock_div_0]
 
 set_property -dict [list \
     CONFIG.DIV {5} \
-] [get_bd_cells clock_div_25_inst]
+] [get_bd_cells clock_div_25_0]
 
 set_property -dict [list \
     CONFIG.STABLE {1250000} \
-] [get_bd_cells debounce_inst]
+] [get_bd_cells debounce_0]
 
 # UART CLKS_PER_BIT = 125 MHz / 115200 = 1085 on Zybo Z7-10.
 set_property -dict [list \
     CONFIG.CLKS_PER_BIT {1085} \
-] [get_bd_cells uart_inst]
+] [get_bd_cells uart_0]
 
 # --------- 3. instruction memory (BMG IP, 32-bit x 16384, ROM, COE init) ---------
 create_bd_cell -type ip -vlnv xilinx.com:ip:blk_mem_gen irMem
@@ -129,101 +132,101 @@ proc cn {a b} {
 }
 
 # Clock + reset distribution
-cn [get_bd_ports clk]                      [get_bd_pins clock_div_cpu/clk]
-cn [get_bd_ports clk]                      [get_bd_pins clock_div_25_inst/clk]
-cn [get_bd_ports clk]                      [get_bd_pins debounce_inst/clk]
-cn [get_bd_ports clk]                      [get_bd_pins controls_inst/clk]
-cn [get_bd_ports clk]                      [get_bd_pins regs_inst/clk]
-cn [get_bd_ports clk]                      [get_bd_pins my_alu_inst/clk]
-cn [get_bd_ports clk]                      [get_bd_pins framebuffer_inst/clk]
-cn [get_bd_ports clk]                      [get_bd_pins vga_ctrl_inst/clk]
-cn [get_bd_ports clk]                      [get_bd_pins pixel_pusher_inst/clk]
-cn [get_bd_ports clk]                      [get_bd_pins uart_inst/clk]
+cn [get_bd_ports clk]                      [get_bd_pins clock_div_0/clk]
+cn [get_bd_ports clk]                      [get_bd_pins clock_div_25_0/clk]
+cn [get_bd_ports clk]                      [get_bd_pins debounce_0/clk]
+cn [get_bd_ports clk]                      [get_bd_pins controls_0/clk]
+cn [get_bd_ports clk]                      [get_bd_pins regs_0/clk]
+cn [get_bd_ports clk]                      [get_bd_pins my_alu_0/clk]
+cn [get_bd_ports clk]                      [get_bd_pins framebuffer_0/clk]
+cn [get_bd_ports clk]                      [get_bd_pins vga_ctrl_0/clk]
+cn [get_bd_ports clk]                      [get_bd_pins pixel_pusher_0/clk]
+cn [get_bd_ports clk]                      [get_bd_pins uart_0/clk]
 cn [get_bd_ports clk]                      [get_bd_pins irMem/clka]
 cn [get_bd_ports clk]                      [get_bd_pins dMem/clka]
 
-cn [get_bd_ports btn_0]                    [get_bd_pins debounce_inst/btn]
-cn [get_bd_pins debounce_inst/dbn]         [get_bd_pins clock_div_cpu/rst]
-cn [get_bd_pins debounce_inst/dbn]         [get_bd_pins clock_div_25_inst/rst]
-cn [get_bd_pins debounce_inst/dbn]         [get_bd_pins controls_inst/rst]
-cn [get_bd_pins debounce_inst/dbn]         [get_bd_pins regs_inst/rst]
-cn [get_bd_pins debounce_inst/dbn]         [get_bd_pins uart_inst/rst]
+cn [get_bd_ports btn_0]                    [get_bd_pins debounce_0/btn]
+cn [get_bd_pins debounce_0/dbn]            [get_bd_pins clock_div_0/rst]
+cn [get_bd_pins debounce_0/dbn]            [get_bd_pins clock_div_25_0/rst]
+cn [get_bd_pins debounce_0/dbn]            [get_bd_pins controls_0/rst]
+cn [get_bd_pins debounce_0/dbn]            [get_bd_pins regs_0/rst]
+cn [get_bd_pins debounce_0/dbn]            [get_bd_pins uart_0/rst]
 
 # Clock-enables (the UART has counter-based bit timing and only needs clk)
-cn [get_bd_pins clock_div_cpu/en]          [get_bd_pins controls_inst/en]
-cn [get_bd_pins clock_div_cpu/en]          [get_bd_pins regs_inst/en]
-cn [get_bd_pins clock_div_cpu/en]          [get_bd_pins my_alu_inst/en]
-cn [get_bd_pins clock_div_cpu/en]          [get_bd_pins framebuffer_inst/en1]
-cn [get_bd_pins clock_div_25_inst/en]      [get_bd_pins framebuffer_inst/en2]
-cn [get_bd_pins clock_div_25_inst/en]      [get_bd_pins vga_ctrl_inst/en]
-cn [get_bd_pins clock_div_25_inst/en]      [get_bd_pins pixel_pusher_inst/en]
+cn [get_bd_pins clock_div_0/en]            [get_bd_pins controls_0/en]
+cn [get_bd_pins clock_div_0/en]            [get_bd_pins regs_0/en]
+cn [get_bd_pins clock_div_0/en]            [get_bd_pins my_alu_0/en]
+cn [get_bd_pins clock_div_0/en]            [get_bd_pins framebuffer_0/en1]
+cn [get_bd_pins clock_div_25_0/en]         [get_bd_pins framebuffer_0/en2]
+cn [get_bd_pins clock_div_25_0/en]         [get_bd_pins vga_ctrl_0/en]
+cn [get_bd_pins clock_div_25_0/en]         [get_bd_pins pixel_pusher_0/en]
 
 # controls <-> regs
-cn [get_bd_pins controls_inst/rID1]        [get_bd_pins regs_inst/id1]
-cn [get_bd_pins controls_inst/rID2]        [get_bd_pins regs_inst/id2]
-cn [get_bd_pins controls_inst/wr_enR1]     [get_bd_pins regs_inst/wr_en1]
-cn [get_bd_pins controls_inst/wr_enR2]     [get_bd_pins regs_inst/wr_en2]
-cn [get_bd_pins controls_inst/regwD1]      [get_bd_pins regs_inst/din1]
-cn [get_bd_pins controls_inst/regwD2]      [get_bd_pins regs_inst/din2]
-cn [get_bd_pins regs_inst/dout1]           [get_bd_pins controls_inst/regrD1]
-cn [get_bd_pins regs_inst/dout2]           [get_bd_pins controls_inst/regrD2]
+cn [get_bd_pins controls_0/rID1]           [get_bd_pins regs_0/id1]
+cn [get_bd_pins controls_0/rID2]           [get_bd_pins regs_0/id2]
+cn [get_bd_pins controls_0/wr_enR1]        [get_bd_pins regs_0/wr_en1]
+cn [get_bd_pins controls_0/wr_enR2]        [get_bd_pins regs_0/wr_en2]
+cn [get_bd_pins controls_0/regwD1]         [get_bd_pins regs_0/din1]
+cn [get_bd_pins controls_0/regwD2]         [get_bd_pins regs_0/din2]
+cn [get_bd_pins regs_0/dout1]              [get_bd_pins controls_0/regrD1]
+cn [get_bd_pins regs_0/dout2]              [get_bd_pins controls_0/regrD2]
 
 # controls <-> framebuffer (port 1)
-cn [get_bd_pins controls_inst/fbRST]       [get_bd_pins framebuffer_inst/ld]
-cn [get_bd_pins controls_inst/fbAddr1]     [get_bd_pins framebuffer_inst/addr1]
-cn [get_bd_pins controls_inst/fbDout1]     [get_bd_pins framebuffer_inst/din1]
-cn [get_bd_pins framebuffer_inst/dout1]    [get_bd_pins controls_inst/fbDin1]
-cn [get_bd_pins controls_inst/fbWr_en]     [get_bd_pins framebuffer_inst/wr_en1]
+cn [get_bd_pins controls_0/fbRST]          [get_bd_pins framebuffer_0/ld]
+cn [get_bd_pins controls_0/fbAddr1]        [get_bd_pins framebuffer_0/addr1]
+cn [get_bd_pins controls_0/fbDout1]        [get_bd_pins framebuffer_0/din1]
+cn [get_bd_pins framebuffer_0/dout1]       [get_bd_pins controls_0/fbDin1]
+cn [get_bd_pins controls_0/fbWr_en]        [get_bd_pins framebuffer_0/wr_en1]
 
 # pixel_pusher <-> framebuffer (port 2)
-cn [get_bd_pins pixel_pusher_inst/addr]    [get_bd_pins framebuffer_inst/addr2]
-cn [get_bd_pins framebuffer_inst/dout2]    [get_bd_pins pixel_pusher_inst/pixel]
+cn [get_bd_pins pixel_pusher_0/addr]       [get_bd_pins framebuffer_0/addr2]
+cn [get_bd_pins framebuffer_0/dout2]       [get_bd_pins pixel_pusher_0/pixel]
 
 # vga_ctrl <-> pixel_pusher
-cn [get_bd_pins vga_ctrl_inst/hcount]      [get_bd_pins pixel_pusher_inst/hcount]
-cn [get_bd_pins vga_ctrl_inst/vcount]      [get_bd_pins pixel_pusher_inst/vcount]
-cn [get_bd_pins vga_ctrl_inst/vid]         [get_bd_pins pixel_pusher_inst/vid]
-cn [get_bd_pins vga_ctrl_inst/vs]          [get_bd_pins pixel_pusher_inst/vs]
+cn [get_bd_pins vga_ctrl_0/hcount]         [get_bd_pins pixel_pusher_0/hcount]
+cn [get_bd_pins vga_ctrl_0/vcount]         [get_bd_pins pixel_pusher_0/vcount]
+cn [get_bd_pins vga_ctrl_0/vid]            [get_bd_pins pixel_pusher_0/vid]
+cn [get_bd_pins vga_ctrl_0/vs]             [get_bd_pins pixel_pusher_0/vs]
 
 # VGA outputs (5-6-5 from pixel_pusher straight to external ports)
-cn [get_bd_pins pixel_pusher_inst/r]       [get_bd_ports vga_r]
-cn [get_bd_pins pixel_pusher_inst/g]       [get_bd_ports vga_g]
-cn [get_bd_pins pixel_pusher_inst/b]       [get_bd_ports vga_b]
-cn [get_bd_pins vga_ctrl_inst/hs]          [get_bd_ports vga_hs]
-cn [get_bd_pins vga_ctrl_inst/vs]          [get_bd_ports vga_vs]
+cn [get_bd_pins pixel_pusher_0/r]          [get_bd_ports vga_r]
+cn [get_bd_pins pixel_pusher_0/g]          [get_bd_ports vga_g]
+cn [get_bd_pins pixel_pusher_0/b]          [get_bd_ports vga_b]
+cn [get_bd_pins vga_ctrl_0/hs]             [get_bd_ports vga_hs]
+cn [get_bd_pins vga_ctrl_0/vs]             [get_bd_ports vga_vs]
 
 # controls <-> ALU
-cn [get_bd_pins controls_inst/aluA]        [get_bd_pins my_alu_inst/A]
-cn [get_bd_pins controls_inst/aluB]        [get_bd_pins my_alu_inst/B]
-cn [get_bd_pins controls_inst/aluOp]       [get_bd_pins my_alu_inst/opcode]
-cn [get_bd_pins my_alu_inst/Y]             [get_bd_pins controls_inst/aluResult]
+cn [get_bd_pins controls_0/aluA]           [get_bd_pins my_alu_0/A]
+cn [get_bd_pins controls_0/aluB]           [get_bd_pins my_alu_0/B]
+cn [get_bd_pins controls_0/aluOp]          [get_bd_pins my_alu_0/opcode]
+cn [get_bd_pins my_alu_0/Y]                [get_bd_pins controls_0/aluResult]
 
 # controls <-> irMem (BMG IP). BMG ports: addra, dina, douta, ena, wea
-cn [get_bd_pins controls_inst/irAddr]      [get_bd_pins irMem/addra]
-cn [get_bd_pins irMem/douta]               [get_bd_pins controls_inst/irWord]
-cn [get_bd_pins clock_div_cpu/en]          [get_bd_pins irMem/ena]
+cn [get_bd_pins controls_0/irAddr]         [get_bd_pins irMem/addra]
+cn [get_bd_pins irMem/douta]               [get_bd_pins controls_0/irWord]
+cn [get_bd_pins clock_div_0/en]            [get_bd_pins irMem/ena]
 
 # controls <-> dMem
-cn [get_bd_pins controls_inst/dAddr]       [get_bd_pins dMem/addra]
-cn [get_bd_pins controls_inst/dOut]        [get_bd_pins dMem/dina]
-cn [get_bd_pins dMem/douta]                [get_bd_pins controls_inst/dIn]
-cn [get_bd_pins controls_inst/d_wr_en]     [get_bd_pins dMem/wea]
-cn [get_bd_pins clock_div_cpu/en]          [get_bd_pins dMem/ena]
+cn [get_bd_pins controls_0/dAddr]          [get_bd_pins dMem/addra]
+cn [get_bd_pins controls_0/dOut]           [get_bd_pins dMem/dina]
+cn [get_bd_pins dMem/douta]                [get_bd_pins controls_0/dIn]
+cn [get_bd_pins controls_0/d_wr_en]        [get_bd_pins dMem/wea]
+cn [get_bd_pins clock_div_0/en]            [get_bd_pins dMem/ena]
 
 # controls <-> uart
 # NOTE: the controls entity port is `tx_send` (renamed from `send` to avoid
 # clashing with the FSM state literal `send`).  The uart entity still uses
 # `send` on its side.
-cn [get_bd_pins controls_inst/tx_send]     [get_bd_pins uart_inst/send]
-cn [get_bd_pins controls_inst/charSend]    [get_bd_pins uart_inst/charSend]
-cn [get_bd_pins uart_inst/ready]           [get_bd_pins controls_inst/ready]
-cn [get_bd_pins uart_inst/newChar]         [get_bd_pins controls_inst/newChar]
-cn [get_bd_pins uart_inst/charRec]         [get_bd_pins controls_inst/charRec]
+cn [get_bd_pins controls_0/tx_send]        [get_bd_pins uart_0/send]
+cn [get_bd_pins controls_0/charSend]       [get_bd_pins uart_0/charSend]
+cn [get_bd_pins uart_0/ready]              [get_bd_pins controls_0/ready]
+cn [get_bd_pins uart_0/newChar]            [get_bd_pins controls_0/newChar]
+cn [get_bd_pins uart_0/charRec]            [get_bd_pins controls_0/charRec]
 # UART crossed wiring (lab manual convention):
 #   TXD external (Pmod TX, FPGA in) -> uart.rx
 #   uart.tx -> RXD external (Pmod RX, FPGA out)
-cn [get_bd_ports TXD]                      [get_bd_pins uart_inst/rx]
-cn [get_bd_pins uart_inst/tx]              [get_bd_ports RXD]
+cn [get_bd_ports TXD]                      [get_bd_pins uart_0/rx]
+cn [get_bd_pins uart_0/tx]                 [get_bd_ports RXD]
 # CTS and RTS are external ports only; the reference BD leaves both
 # unconnected internally (no xlconstant driver, no UART pin), so we do
 # the same here.
