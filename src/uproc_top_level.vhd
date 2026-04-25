@@ -40,12 +40,12 @@ entity uproc_top_level is
         -- Pmod USBUART (silkscreen names per the lab manual reference BD).
         --   TXD = host's TXD pin, FPGA INPUT  (host -> FPGA)
         --   RXD = host's RXD pin, FPGA OUTPUT (FPGA -> host)
-        --   CTS = host's CTS pin, FPGA OUTPUT, tied low (always clear)
+        --   CTS = host's CTS pin, FPGA INPUT, ignored (matches reference BD)
         --   RTS = host's RTS pin, FPGA INPUT, ignored
         TXD    : in  std_logic;
         RXD    : out std_logic;
         RTS    : in  std_logic;
-        CTS    : out std_logic;
+        CTS    : in  std_logic;
 
         -- Pmod VGA. We expose the full 5-6-5 channels straight out of
         -- pixel_pusher (matches the lab manual BD). The XDC connects only
@@ -120,9 +120,9 @@ begin
         generic map (STABLE => 1250000)
         port map ( clk => clk, btn => btn_0, dbn => rst );
 
-    -- Tie CTS low: FPGA is always clear-to-send to the host.
-    -- RTS is read but unused.
-    CTS <= '0';
+    -- CTS and RTS are unused inputs - the reference BD leaves both
+    -- unconnected internally. Vivado will warn about unread ports; safe
+    -- to ignore.
 
     u_ckcpu : entity work.clock_div
         generic map (DIV => 1)

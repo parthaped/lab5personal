@@ -25,7 +25,7 @@ set_property -dict { PACKAGE_PIN K18 IOSTANDARD LVCMOS33 } [get_ports btn_0]
 # silkscreen and the lab manual reference BD:
 #   TXD = Pmod's TXD pin (JE3, FPGA INPUT, host -> FPGA)
 #   RXD = Pmod's RXD pin (JE2, FPGA OUTPUT, FPGA -> host)
-#   CTS = Pmod's CTS pin (JE4, FPGA OUTPUT, tied low)
+#   CTS = Pmod's CTS pin (JE4, FPGA INPUT, ignored - matches reference BD)
 #   RTS = Pmod's RTS pin (JE1, FPGA INPUT, ignored)
 ###############################################################################
 set_property -dict { PACKAGE_PIN J15 IOSTANDARD LVCMOS33 } [get_ports TXD] ;# JE3

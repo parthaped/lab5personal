@@ -90,7 +90,9 @@ set_property -dict [list \
 # reference BD:
 #   TXD = Pmod's TXD pin (FPGA INPUT, host -> FPGA)
 #   RXD = Pmod's RXD pin (FPGA OUTPUT, FPGA -> host)
-#   CTS = Pmod's CTS pin (FPGA OUTPUT, tied low so the host is always clear)
+#   CTS = Pmod's CTS pin (FPGA INPUT, ignored - matches the reference BD,
+#         which leaves CTS unconnected internally rather than driving it
+#         with an xlconstant)
 #   RTS = Pmod's RTS pin (FPGA INPUT, ignored - host is always ready)
 #
 # btn is named btn_0 to match the lab BD (Vivado's auto-rename convention
@@ -104,18 +106,12 @@ create_bd_port -dir I btn_0
 create_bd_port -dir I TXD
 create_bd_port -dir O RXD
 create_bd_port -dir I RTS
-create_bd_port -dir O CTS
+create_bd_port -dir I CTS
 create_bd_port -dir O -from 4 -to 0 vga_r
 create_bd_port -dir O -from 5 -to 0 vga_g
 create_bd_port -dir O -from 4 -to 0 vga_b
 create_bd_port -dir O vga_hs
 create_bd_port -dir O vga_vs
-
-# CTS is held low (FPGA is always ready to receive). Use an xlconstant IP.
-create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant cts_low
-set_property -dict [list \
-    CONFIG.CONST_WIDTH {1} \
-    CONFIG.CONST_VAL {0}] [get_bd_cells cts_low]
 
 # --------- 6. wiring ---------
 # Wrapper around connect_bd_net that hard-fails if either side resolves to
@@ -228,8 +224,9 @@ cn [get_bd_pins uart_inst/charRec]         [get_bd_pins controls_inst/charRec]
 #   uart.tx -> RXD external (Pmod RX, FPGA out)
 cn [get_bd_ports TXD]                      [get_bd_pins uart_inst/rx]
 cn [get_bd_pins uart_inst/tx]              [get_bd_ports RXD]
-# CTS held low (always clear-to-send to host). RTS is ignored (no pin to wire).
-cn [get_bd_pins cts_low/dout]              [get_bd_ports CTS]
+# CTS and RTS are external ports only; the reference BD leaves both
+# unconnected internally (no xlconstant driver, no UART pin), so we do
+# the same here.
 
 # --------- 7. validate, layout, wrap, save ---------
 # regenerate_bd_layout uses Vivado's default "inputs left, outputs right"
