@@ -29,6 +29,15 @@ use IEEE.NUMERIC_STD.ALL;
 use STD.TEXTIO.ALL;
 
 entity tb_top is
+    -- COE paths come from the simulator at elaboration time so the testbench
+    -- is portable between macOS / Linux / Windows.  create_project.tcl sets
+    -- both generics on the sim_1 fileset to absolute paths computed from
+    -- $proj_dir, so no editing of this file is required when the project is
+    -- cloned to a new machine.  GHDL invocations override them with -g.
+    generic (
+        TEXT_COE : string := "text.coe";
+        DATA_COE : string := "data.coe"
+    );
 end tb_top;
 
 architecture sim of tb_top is
@@ -39,9 +48,6 @@ architecture sim of tb_top is
     constant BAUD_TB   : integer := 5_000_000;     -- fast UART for sim
     constant CLK_PER   : time    := 8 ns;
     constant BIT_PER   : time    := (1 sec) / BAUD_TB;
-
-    constant TEXT_COE_PATH : string := "/Users/parthapediredla/lab5/coe/text.coe";
-    constant DATA_COE_PATH : string := "/Users/parthapediredla/lab5/coe/data.coe";
 
     --------------------------------------------------------------------
     -- DUT boundary signals (names follow the lab manual reference BD)
@@ -69,8 +75,8 @@ begin
             SYS_HZ   => SYS_HZ_TB,
             BAUD     => BAUD_TB,
             PIX_DIV  => 5,
-            TEXT_COE => TEXT_COE_PATH,
-            DATA_COE => DATA_COE_PATH
+            TEXT_COE => TEXT_COE,
+            DATA_COE => DATA_COE
         )
         port map (
             clk    => tb_clk,

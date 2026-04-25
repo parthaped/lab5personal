@@ -94,14 +94,24 @@ if {[file exists "$proj_dir/xdc/zybo_lab5.xdc"]} {
     add_files -fileset constrs_1 -norecurse "$proj_dir/xdc/zybo_lab5.xdc"
 }
 
-# Set absolute COE paths as generics on uproc_top_level so synthesis can find them.
+# Set absolute COE paths as generics on uproc_top_level (for synthesis) and
+# on tb_top (for behavioural simulation) so the project is portable across
+# macOS / Linux / Windows without editing any VHDL.
+set text_coe_abs [file normalize "$proj_dir/coe/text.coe"]
+set data_coe_abs [file normalize "$proj_dir/coe/data.coe"]
+
 set_property generic [list \
-    TEXT_COE=$proj_dir/coe/text.coe \
-    DATA_COE=$proj_dir/coe/data.coe \
-] [current_fileset]
+    "TEXT_COE=$text_coe_abs" \
+    "DATA_COE=$data_coe_abs" \
+] [get_filesets sources_1]
+
+set_property generic [list \
+    "TEXT_COE=$text_coe_abs" \
+    "DATA_COE=$data_coe_abs" \
+] [get_filesets sim_1]
 
 # Set the synthesis top.
-set_property top uproc_top_level [current_fileset]
+set_property top uproc_top_level [get_filesets sources_1]
 
 update_compile_order -fileset sources_1
 update_compile_order -fileset sim_1
