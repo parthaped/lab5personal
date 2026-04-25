@@ -37,14 +37,18 @@ entity uproc_top_level is
         clk    : in  std_logic;
         btn    : in  std_logic;            -- active-high reset button
 
-        -- UART (Pmod or USB-UART)
-        rx     : in  std_logic;
-        tx     : out std_logic;
+        -- UART. Port names match the Pmod silkscreen convention used in the
+        -- Lab 5 BD: `tx` is the Pmod's TX line (FPGA INPUT, host -> FPGA),
+        -- `rx` is the Pmod's RX line (FPGA OUTPUT, FPGA -> host).
+        tx     : in  std_logic;
+        rx     : out std_logic;
 
-        -- Pmod VGA (4+4+4 RGB; top 4 bits of each RGB565 component)
-        vga_r  : out std_logic_vector(3 downto 0);
-        vga_g  : out std_logic_vector(3 downto 0);
-        vga_b  : out std_logic_vector(3 downto 0);
+        -- Pmod VGA. We expose the full 5-6-5 channels straight out of
+        -- pixel_pusher (matches the lab manual BD). The XDC connects only
+        -- the top 4 bits of each channel to physical Pmod pins.
+        vga_r  : out std_logic_vector(4 downto 0);
+        vga_g  : out std_logic_vector(5 downto 0);
+        vga_b  : out std_logic_vector(4 downto 0);
         vga_hs : out std_logic;
         vga_vs : out std_logic
     );
@@ -206,22 +210,23 @@ begin
             addr => pp_addr
         );
 
-    -- Map RGB565 to Pmod VGA 4+4+4 by taking the top 4 bits of each.
-    vga_r  <= pp_r(4 downto 1);
-    vga_g  <= pp_g(5 downto 2);
-    vga_b  <= pp_b(4 downto 1);
+    vga_r  <= pp_r;
+    vga_g  <= pp_g;
+    vga_b  <= pp_b;
     vga_hs <= hs_int;
     vga_vs <= vs_int;
 
     ----------------------------------------------------------------------
     -- UART (counter-based bit timing)
     ----------------------------------------------------------------------
+    -- Crossed UART wiring: external `tx` (Pmod TX, FPGA in) -> uart.rx
+    --                       external `rx` (Pmod RX, FPGA out) <- uart.tx
     u_uart : entity work.uart
         generic map (CLKS_PER_BIT => UART_DIV)
         port map (
             clk => clk, rst => rst,
             send => u_send, charSend => u_charSend,
             ready => u_ready, newChar => u_newChar, charRec => u_charRec,
-            tx => tx, rx => rx
+            tx => rx, rx => tx
         );
 end Structural;

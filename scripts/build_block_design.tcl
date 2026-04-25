@@ -85,31 +85,24 @@ set_property -dict [list \
     CONFIG.use_bram_block {Stand_Alone} \
 ] [get_bd_cells dMem]
 
-# --------- 5. external ports (4-4-4 bit RGB to match Pmod VGA) ---------
+# --------- 5. external ports ---------
+# UART port names match the Pmod silkscreen convention (lab manual style):
+#   tx external port = wire labelled "tx" on the Pmod (i.e. Pmod's TX, FPGA INPUT)
+#   rx external port = wire labelled "rx" on the Pmod (i.e. Pmod's RX, FPGA OUTPUT)
+# This is why they appear "crossed" against the uart cell's tx/rx pins.
+#
+# VGA outputs are 5-6-5 directly out of pixel_pusher, matching the lab BD
+# (no slice IPs in the diagram). Pmod VGA is physically 4-4-4 - the XDC maps
+# the top 4 bits of each channel and leaves the LSB(s) unconstrained.
 create_bd_port -dir I -type clk clk
 create_bd_port -dir I btn
-create_bd_port -dir I rx
-create_bd_port -dir O tx
-create_bd_port -dir O -from 3 -to 0 vga_r
-create_bd_port -dir O -from 3 -to 0 vga_g
-create_bd_port -dir O -from 3 -to 0 vga_b
+create_bd_port -dir I tx
+create_bd_port -dir O rx
+create_bd_port -dir O -from 4 -to 0 vga_r
+create_bd_port -dir O -from 5 -to 0 vga_g
+create_bd_port -dir O -from 4 -to 0 vga_b
 create_bd_port -dir O vga_hs
 create_bd_port -dir O vga_vs
-
-# Pixel pusher emits 5-6-5 internally; we slice the top 4 bits of each channel.
-# Use slice IPs to map them onto the 4-bit external buses.
-create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice slice_r
-set_property -dict [list \
-    CONFIG.DIN_WIDTH {5} CONFIG.DIN_FROM {4} CONFIG.DIN_TO {1} \
-    CONFIG.DOUT_WIDTH {4}] [get_bd_cells slice_r]
-create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice slice_g
-set_property -dict [list \
-    CONFIG.DIN_WIDTH {6} CONFIG.DIN_FROM {5} CONFIG.DIN_TO {2} \
-    CONFIG.DOUT_WIDTH {4}] [get_bd_cells slice_g]
-create_bd_cell -type ip -vlnv xilinx.com:ip:xlslice slice_b
-set_property -dict [list \
-    CONFIG.DIN_WIDTH {5} CONFIG.DIN_FROM {4} CONFIG.DIN_TO {1} \
-    CONFIG.DOUT_WIDTH {4}] [get_bd_cells slice_b]
 
 # --------- 6. wiring ---------
 proc cn {a b} { connect_bd_net $a $b }
@@ -171,13 +164,10 @@ cn [get_bd_pins vga_ctrl_inst/vcount]      [get_bd_pins pixel_pusher_inst/vcount
 cn [get_bd_pins vga_ctrl_inst/vid]         [get_bd_pins pixel_pusher_inst/vid]
 cn [get_bd_pins vga_ctrl_inst/vs]          [get_bd_pins pixel_pusher_inst/vs]
 
-# VGA outputs (route 5/6/5 through slice IPs to 4-bit external pins)
-cn [get_bd_pins pixel_pusher_inst/r]       [get_bd_pins slice_r/Din]
-cn [get_bd_pins pixel_pusher_inst/g]       [get_bd_pins slice_g/Din]
-cn [get_bd_pins pixel_pusher_inst/b]       [get_bd_pins slice_b/Din]
-cn [get_bd_pins slice_r/Dout]              [get_bd_ports vga_r]
-cn [get_bd_pins slice_g/Dout]              [get_bd_ports vga_g]
-cn [get_bd_pins slice_b/Dout]              [get_bd_ports vga_b]
+# VGA outputs (5-6-5 from pixel_pusher straight to external ports)
+cn [get_bd_pins pixel_pusher_inst/r]       [get_bd_ports vga_r]
+cn [get_bd_pins pixel_pusher_inst/g]       [get_bd_ports vga_g]
+cn [get_bd_pins pixel_pusher_inst/b]       [get_bd_ports vga_b]
 cn [get_bd_pins vga_ctrl_inst/hs]          [get_bd_ports vga_hs]
 cn [get_bd_pins vga_ctrl_inst/vs]          [get_bd_ports vga_vs]
 
@@ -205,8 +195,10 @@ cn [get_bd_pins controls_inst/charSend]    [get_bd_pins uart_inst/charSend]
 cn [get_bd_pins uart_inst/ready]           [get_bd_pins controls_inst/ready]
 cn [get_bd_pins uart_inst/newChar]         [get_bd_pins controls_inst/newChar]
 cn [get_bd_pins uart_inst/charRec]         [get_bd_pins controls_inst/charRec]
-cn [get_bd_ports rx]                       [get_bd_pins uart_inst/rx]
-cn [get_bd_pins uart_inst/tx]              [get_bd_ports tx]
+# Crossed: external "tx" port is the Pmod's TX line (FPGA INPUT) feeding uart.rx
+#          external "rx" port is the Pmod's RX line (FPGA OUTPUT) driven by uart.tx
+cn [get_bd_ports tx]                       [get_bd_pins uart_inst/rx]
+cn [get_bd_pins uart_inst/tx]              [get_bd_ports rx]
 
 # --------- 7. validate, layout, wrap, save ---------
 regenerate_bd_layout

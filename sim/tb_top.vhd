@@ -33,15 +33,25 @@ architecture sim of tb_top is
     constant TEXT_COE_PATH : string := "/Users/parthapediredla/lab5/coe/text.coe";
     constant DATA_COE_PATH : string := "/Users/parthapediredla/lab5/coe/data.coe";
 
+    -- Names follow the Pmod silkscreen convention (lab manual style):
+    --   tx_pmod = data line driven by the host's UART (FPGA INPUT)
+    --   rx_pmod = data line driven by the FPGA UART  (FPGA OUTPUT)
+    -- We expose them as `tx` and `rx` here to match the BD external ports.
     signal clk    : std_logic := '0';
     signal btn    : std_logic := '1';
-    signal rx     : std_logic := '1';
-    signal tx     : std_logic;
-    signal vga_r  : std_logic_vector(3 downto 0);
-    signal vga_g  : std_logic_vector(3 downto 0);
-    signal vga_b  : std_logic_vector(3 downto 0);
+    signal tx     : std_logic := '1';                       -- host -> FPGA
+    signal rx     : std_logic;                              -- FPGA -> host
+    signal vga_r  : std_logic_vector(4 downto 0);
+    signal vga_g  : std_logic_vector(5 downto 0);
+    signal vga_b  : std_logic_vector(4 downto 0);
     signal vga_hs : std_logic;
     signal vga_vs : std_logic;
+
+    -- Convenience aliases for the waveform window: shows the same names you'd
+    -- see in the lab manual (ps, pc, opcode, reg1addr, etc.). All of these
+    -- live inside the DUT - VHDL-2008 external names give us a flat handle.
+    -- Add these to your wave window: dut/u_ctrl/state, dut/irAddr, dut/u_regs/*
+    -- (Vivado xsim hierarchy lets you drag any internal signal in directly.)
 
 begin
     --------------------------------------------------------------------
@@ -86,20 +96,20 @@ begin
 
     --------------------------------------------------------------------
     -- TX listener: prints every byte the FPGA UART transmits.
+    -- The FPGA UART output appears on the rx_pmod line (port `rx`).
     --------------------------------------------------------------------
     tx_listener : process
         variable l : line;
         variable d : std_logic_vector(7 downto 0);
     begin
-        -- Make sure tx is high (idle) before looking for a start bit.
-        if tx /= '1' then
-            wait until tx = '1';
+        if rx /= '1' then
+            wait until rx = '1';
         end if;
         loop
-            wait until tx = '0';
+            wait until rx = '0';
             wait for BIT_PER + BIT_PER / 2;
             for i in 0 to 7 loop
-                d(i) := tx;
+                d(i) := rx;
                 wait for BIT_PER;
             end loop;
             wait for BIT_PER / 2;
@@ -111,15 +121,14 @@ begin
             end if;
             writeline(output, l);
 
-            -- ensure we resync between bytes
-            if tx /= '1' then
-                wait until tx = '1';
+            if rx /= '1' then
+                wait until rx = '1';
             end if;
         end loop;
     end process;
 
     --------------------------------------------------------------------
-    -- RX driver: after a delay, sends two bytes so we can see recv/wpix.
+    -- RX driver: drives the host->FPGA line (port `tx`).
     --------------------------------------------------------------------
     rx_driver : process
         procedure send_byte (b : std_logic_vector(7 downto 0)) is
@@ -128,17 +137,17 @@ begin
             write(l, string'("[RX] driving 0x"));
             hwrite(l, b);
             writeline(output, l);
-            rx <= '0';                          -- start bit
+            tx <= '0';                          -- start bit
             wait for BIT_PER;
             for i in 0 to 7 loop
-                rx <= b(i);
+                tx <= b(i);
                 wait for BIT_PER;
             end loop;
-            rx <= '1';                          -- stop bit
+            tx <= '1';                          -- stop bit
             wait for BIT_PER;
         end procedure;
     begin
-        rx <= '1';
+        tx <= '1';
         wait for 35 us;                         -- let TX finish "hello_world"
         send_byte(x"41");                       -- 'A'
         wait for 40 us;

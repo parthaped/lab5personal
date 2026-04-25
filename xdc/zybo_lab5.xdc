@@ -21,38 +21,49 @@ create_clock -name sys_clk -period 8.000 [get_ports clk]
 set_property -dict { PACKAGE_PIN K18 IOSTANDARD LVCMOS33 } [get_ports btn]
 
 ###############################################################################
-# UART on Pmod JE  (Pmod USBUART module)
-#   JE2 = TX (FPGA -> host)
-#   JE3 = RX (host  -> FPGA)
+# UART on Pmod JE  (Pmod USBUART module).
+#
+# Port names follow the Pmod silkscreen:
+#   port "tx" = the Pmod's TX line (FPGA INPUT, JE3)  - data from host
+#   port "rx" = the Pmod's RX line (FPGA OUTPUT, JE2) - data to host
+#
+# This matches the Lab 5 BD diagram, where the external "tx" port is wired
+# to the uart cell's "rx" pin (and vice-versa).
 ###############################################################################
-set_property -dict { PACKAGE_PIN W16 IOSTANDARD LVCMOS33 } [get_ports tx]   ;# JE2
-set_property -dict { PACKAGE_PIN J15 IOSTANDARD LVCMOS33 } [get_ports rx]   ;# JE3
+set_property -dict { PACKAGE_PIN J15 IOSTANDARD LVCMOS33 } [get_ports tx]   ;# JE3, FPGA in
+set_property -dict { PACKAGE_PIN W16 IOSTANDARD LVCMOS33 } [get_ports rx]   ;# JE2, FPGA out
 
 ###############################################################################
-# Pmod VGA - 4+4+4 RGB
+# Pmod VGA - hardware is 4+4+4 RGB but pixel_pusher emits 5+6+5.
+# We constrain the TOP 4 bits of each channel to the Pmod pins. The unused
+# LSB(s) (vga_r[0], vga_g[0..1], vga_b[0]) are left unconnected; allow that
+# explicitly so synth/impl don't error out.
 #
-#   JB1..JB4 = R[0..3]
-#   JB7..JB10 = B[0..3]
-#   JC1..JC4 = G[0..3]
+#   JB1..JB4 = R[3..0] -> tied to vga_r[4..1]    (vga_r[0] unused)
+#   JB7..JB10 = B[3..0] -> tied to vga_b[4..1]    (vga_b[0] unused)
+#   JC1..JC4 = G[3..0] -> tied to vga_g[5..2]    (vga_g[1..0] unused)
 #   JC7      = HS
 #   JC8      = VS
 ###############################################################################
-set_property -dict { PACKAGE_PIN T20 IOSTANDARD LVCMOS33 } [get_ports {vga_r[0]}] ;# JB1
-set_property -dict { PACKAGE_PIN U20 IOSTANDARD LVCMOS33 } [get_ports {vga_r[1]}] ;# JB2
-set_property -dict { PACKAGE_PIN V20 IOSTANDARD LVCMOS33 } [get_ports {vga_r[2]}] ;# JB3
-set_property -dict { PACKAGE_PIN W20 IOSTANDARD LVCMOS33 } [get_ports {vga_r[3]}] ;# JB4
+set_property -dict { PACKAGE_PIN T20 IOSTANDARD LVCMOS33 } [get_ports {vga_r[1]}] ;# JB1  -> R0
+set_property -dict { PACKAGE_PIN U20 IOSTANDARD LVCMOS33 } [get_ports {vga_r[2]}] ;# JB2  -> R1
+set_property -dict { PACKAGE_PIN V20 IOSTANDARD LVCMOS33 } [get_ports {vga_r[3]}] ;# JB3  -> R2
+set_property -dict { PACKAGE_PIN W20 IOSTANDARD LVCMOS33 } [get_ports {vga_r[4]}] ;# JB4  -> R3 (MSB)
 
-set_property -dict { PACKAGE_PIN Y19 IOSTANDARD LVCMOS33 } [get_ports {vga_b[0]}] ;# JB7
-set_property -dict { PACKAGE_PIN Y18 IOSTANDARD LVCMOS33 } [get_ports {vga_b[1]}] ;# JB8
-set_property -dict { PACKAGE_PIN W18 IOSTANDARD LVCMOS33 } [get_ports {vga_b[2]}] ;# JB9
-set_property -dict { PACKAGE_PIN W19 IOSTANDARD LVCMOS33 } [get_ports {vga_b[3]}] ;# JB10
+set_property -dict { PACKAGE_PIN Y19 IOSTANDARD LVCMOS33 } [get_ports {vga_b[1]}] ;# JB7  -> B0
+set_property -dict { PACKAGE_PIN Y18 IOSTANDARD LVCMOS33 } [get_ports {vga_b[2]}] ;# JB8  -> B1
+set_property -dict { PACKAGE_PIN W18 IOSTANDARD LVCMOS33 } [get_ports {vga_b[3]}] ;# JB9  -> B2
+set_property -dict { PACKAGE_PIN W19 IOSTANDARD LVCMOS33 } [get_ports {vga_b[4]}] ;# JB10 -> B3 (MSB)
 
-set_property -dict { PACKAGE_PIN V15 IOSTANDARD LVCMOS33 } [get_ports {vga_g[0]}] ;# JC1
-set_property -dict { PACKAGE_PIN W15 IOSTANDARD LVCMOS33 } [get_ports {vga_g[1]}] ;# JC2
-set_property -dict { PACKAGE_PIN T11 IOSTANDARD LVCMOS33 } [get_ports {vga_g[2]}] ;# JC3
-set_property -dict { PACKAGE_PIN T10 IOSTANDARD LVCMOS33 } [get_ports {vga_g[3]}] ;# JC4
-set_property -dict { PACKAGE_PIN W14 IOSTANDARD LVCMOS33 } [get_ports vga_hs]      ;# JC7
-set_property -dict { PACKAGE_PIN Y14 IOSTANDARD LVCMOS33 } [get_ports vga_vs]      ;# JC8
+set_property -dict { PACKAGE_PIN V15 IOSTANDARD LVCMOS33 } [get_ports {vga_g[2]}] ;# JC1  -> G0
+set_property -dict { PACKAGE_PIN W15 IOSTANDARD LVCMOS33 } [get_ports {vga_g[3]}] ;# JC2  -> G1
+set_property -dict { PACKAGE_PIN T11 IOSTANDARD LVCMOS33 } [get_ports {vga_g[4]}] ;# JC3  -> G2
+set_property -dict { PACKAGE_PIN T10 IOSTANDARD LVCMOS33 } [get_ports {vga_g[5]}] ;# JC4  -> G3 (MSB)
+set_property -dict { PACKAGE_PIN W14 IOSTANDARD LVCMOS33 } [get_ports vga_hs]     ;# JC7
+set_property -dict { PACKAGE_PIN Y14 IOSTANDARD LVCMOS33 } [get_ports vga_vs]     ;# JC8
+
+# The unused VGA LSB outputs are intentionally unconstrained.
+set_property BITSTREAM.GENERAL.UNCONSTRAINEDPINS Allow [current_design]
 
 ###############################################################################
 # Configuration voltage (Zynq devices)
