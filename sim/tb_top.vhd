@@ -1,42 +1,29 @@
 -------------------------------------------------------------------------------
 -- tb_top.vhd
 --
--- Behavioral testbench for the GRISC ASIP, modelled on the Lab 5 reference
--- testbench.  Stimulus pattern:
+-- Behavioral testbench for the GRISC ASIP.  Stimulus pattern:
 --   * generate the 125 MHz system clock (tb_clk)
 --   * hold btn_0 (active-high reset) high for 1 us, then release
 --   * passively listen on RXD and print every byte the FPGA UART transmits
 --   * after the design finishes printing "hello_world", drive a couple of
 --     bytes onto TXD so the recv -> wpix loop can be observed
 --
--- Waveform signal names match the Lab 5 reference waveform exactly so the
--- xsim wave window reads identically to the lecture slide.  The mapping
--- (all driven by VHDL-2008 external names from inside the DUT - no
--- synthesisable code is touched):
---     ps               <- dut.u_ctrl.state                 (present state)
---     pc[13:0]         <- dut.u_ctrl.pc_sig(13:0)          (program counter)
---     opcode[4:0]      <- dut.u_ctrl.ir(31:27)             (top-5 of IR)
---     imm_arg[15:0]    <- dut.u_ctrl.ir(16:1)              (extracted immediate)
---     reg1addr/2/3     <- ir(26:22), ir(21:17), ir(16:12)  (instr fields)
---     reg1data/2/3     <- dut.u_regs.mem(reg{1,2,3}addr)   (live reg values)
---     controls_0_wr_enR1  <- dut.u_ctrl.wr_enR1
---     charSend / charRec / newChar  <- dut.u_charSend / charRec / newChar
---     fbWr_en / fbAddr1 / fbDout1 / fbDin1  <- dut.fb_*
---     tb_vga_r / tb_vga_g / tb_vga_b        <- vga_r / vga_g / vga_b
+-- DUT internal signals (state, pc_sig, ir, register file, charSend / charRec,
+-- framebuffer ports, etc.) are NOT pulled up to the tb level via VHDL-2008
+-- external names.  Vivado's xelab is known to segfault on Windows when
+-- external names cross VHDL-2008 / VHDL-93 boundaries (which we have because
+-- module-reference IPI cells must be -93).  The waveform configuration file
+-- (sim/tb_top.wcfg) instead references those signals directly via their
+-- hierarchy paths (e.g. /tb_top/dut/u_ctrl/pc_sig) with display aliases that
+-- match the lab manual reference waveform exactly.
 -------------------------------------------------------------------------------
 
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.NUMERIC_STD.ALL;
 use STD.TEXTIO.ALL;
-use work.regs_pkg.all;
 
 entity tb_top is
-    -- COE paths come from the simulator at elaboration time so the testbench
-    -- is portable between macOS / Linux / Windows.  create_project.tcl sets
-    -- both generics on the sim_1 fileset to absolute paths computed from
-    -- $proj_dir, so no editing of this file is required when the project is
-    -- cloned to a new machine.  GHDL invocations override them with -g.
     generic (
         TEXT_COE : string := "text.coe";
         DATA_COE : string := "data.coe"
@@ -53,7 +40,7 @@ architecture sim of tb_top is
     constant BIT_PER   : time    := (1 sec) / BAUD_TB;
 
     --------------------------------------------------------------------
-    -- DUT boundary signals (names follow the lab manual reference BD)
+    -- DUT boundary signals
     --------------------------------------------------------------------
     signal tb_clk : std_logic := '0';
     signal btn_0  : std_logic := '1';
@@ -63,48 +50,11 @@ architecture sim of tb_top is
     signal RTS    : std_logic;                       -- FPGA OUTPUT, tri-stated 'Z' inside DUT
     signal CTS    : std_logic;                       -- FPGA OUTPUT, tri-stated 'Z' inside DUT
 
-    signal vga_r  : std_logic_vector(4 downto 0);    -- tb_vga_r
-    signal vga_g  : std_logic_vector(5 downto 0);    -- tb_vga_g
-    signal vga_b  : std_logic_vector(4 downto 0);    -- tb_vga_b
+    signal vga_r  : std_logic_vector(4 downto 0);
+    signal vga_g  : std_logic_vector(5 downto 0);
+    signal vga_b  : std_logic_vector(4 downto 0);
     signal vga_hs : std_logic;
     signal vga_vs : std_logic;
-
-    --------------------------------------------------------------------
-    -- Reference-named monitor signals.  These are tb-level mirrors of
-    -- DUT internals exposed via VHDL-2008 external names so the wcfg can
-    -- display the *exact* signal names used in the lab manual reference
-    -- waveform (no hierarchy paths, no aliasing).
-    --------------------------------------------------------------------
-    signal pc_sig_view : unsigned(15 downto 0);
-    signal ir_view     : std_logic_vector(31 downto 0);
-    signal reg_view    : reg_array_t;
-
-    signal pc          : std_logic_vector(13 downto 0);
-    signal opcode      : std_logic_vector(4 downto 0);
-    signal imm_arg     : std_logic_vector(15 downto 0);
-
-    signal reg1addr    : std_logic_vector(4 downto 0);
-    signal reg2addr    : std_logic_vector(4 downto 0);
-    signal reg3addr    : std_logic_vector(4 downto 0);
-    signal reg1data    : std_logic_vector(15 downto 0);
-    signal reg2data    : std_logic_vector(15 downto 0);
-    signal reg3data    : std_logic_vector(15 downto 0);
-
-    signal controls_0_wr_enR1 : std_logic;
-
-    signal newChar     : std_logic;
-    signal charSend    : std_logic_vector(7 downto 0);
-    signal charRec     : std_logic_vector(7 downto 0);
-
-    signal fbWr_en     : std_logic;
-    signal fbAddr1     : std_logic_vector(11 downto 0);
-    signal fbDin1      : std_logic_vector(15 downto 0);
-    signal fbDout1     : std_logic_vector(15 downto 0);
-
-    signal tb_vga_r    : std_logic_vector(4 downto 0);
-    signal tb_vga_g    : std_logic_vector(5 downto 0);
-    signal tb_vga_b    : std_logic_vector(4 downto 0);
-
 begin
     --------------------------------------------------------------------
     -- DUT (structural top, identical interface to the BD wrapper)
@@ -130,42 +80,6 @@ begin
             vga_hs => vga_hs,
             vga_vs => vga_vs
         );
-
-    --------------------------------------------------------------------
-    -- VHDL-2008 external-name views into DUT internals.
-    -- These let the waveform expose lab-reference names without changing
-    -- any of the synthesisable code.
-    --------------------------------------------------------------------
-    pc_sig_view <= << signal .tb_top.dut.u_ctrl.pc_sig : unsigned(15 downto 0) >>;
-    ir_view     <= << signal .tb_top.dut.u_ctrl.ir     : std_logic_vector(31 downto 0) >>;
-    reg_view    <= << signal .tb_top.dut.u_regs.mem    : reg_array_t >>;
-
-    pc       <= std_logic_vector(pc_sig_view(13 downto 0));
-    opcode   <= ir_view(31 downto 27);
-    imm_arg  <= ir_view(16 downto  1);
-
-    -- GRISC instruction format: [op(5)][reg1(5)][reg2(5)][reg3(5)][...]
-    reg1addr <= ir_view(26 downto 22);     -- destination
-    reg2addr <= ir_view(21 downto 17);     -- source 1
-    reg3addr <= ir_view(16 downto 12);     -- source 2 / unused for I/J types
-    reg1data <= reg_view(to_integer(unsigned(reg1addr)));
-    reg2data <= reg_view(to_integer(unsigned(reg2addr)));
-    reg3data <= reg_view(to_integer(unsigned(reg3addr)));
-
-    -- Mirror BD-style net names so the wcfg signal list matches the
-    -- lecture screenshot row-for-row.
-    controls_0_wr_enR1 <= << signal .tb_top.dut.u_ctrl.wr_enR1 : std_logic >>;
-    newChar  <= << signal .tb_top.dut.u_newChar  : std_logic >>;
-    charSend <= << signal .tb_top.dut.u_charSend : std_logic_vector(7 downto 0) >>;
-    charRec  <= << signal .tb_top.dut.u_charRec  : std_logic_vector(7 downto 0) >>;
-    fbWr_en  <= << signal .tb_top.dut.fb_we      : std_logic >>;
-    fbAddr1  <= << signal .tb_top.dut.fb_addr1   : std_logic_vector(11 downto 0) >>;
-    fbDin1   <= << signal .tb_top.dut.fb_dout1   : std_logic_vector(15 downto 0) >>; -- read INTO controls
-    fbDout1  <= << signal .tb_top.dut.fb_din     : std_logic_vector(15 downto 0) >>; -- write OUT from controls
-
-    tb_vga_r <= vga_r;
-    tb_vga_g <= vga_g;
-    tb_vga_b <= vga_b;
 
     --------------------------------------------------------------------
     -- 125 MHz clock

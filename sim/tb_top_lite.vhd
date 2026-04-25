@@ -1,51 +1,27 @@
 -------------------------------------------------------------------------------
 -- tb_top_lite.vhd
 --
--- Alternative behavioural testbench for the GRISC ASIP.  Functionally
--- equivalent to tb_top.vhd (same boundary stimulus, same resulting
--- waveforms on the wcfg-tracked signals: state, pc_sig, opcode, charSend,
--- charRec, fb_*, vga_*) but rewritten so that Vivado's xsim does NOT crash
--- on Windows.
+-- Crash-safe behavioural testbench for the GRISC ASIP.
 --
--- Why the original tb_top.vhd can crash xsim
--- ------------------------------------------
--- 1. The instruction ROM (irMem.vhd) and data RAM (dMem.vhd) declare their
---    storage as a *signal* (`signal mem : mem_t`) sized 16384 x 32 b and
---    32768 x 16 b respectively. xsim allocates per-element waveform tracking
---    for every signal in scope. With ~1.05 Mbits of state plus the wcfg
---    referencing deep DUT hierarchy, the .wdb file balloons to multiple GB
---    over the 200 us run and exhausts available RAM / page file.
--- 2. The original tb runs for 200 us at 125 MHz (25_000 cycles tracked).
---    The 25 MHz pixel-clock domain runs constantly inside that window and
---    every signal in the VGA pipeline toggles thousands of times.
--- 3. `std.env.stop` does not terminate xsim - it just halts the kernel,
---    leaving the giant WDB resident in memory.  On Windows that often
---    presents as the GUI hanging or the OOM-killer taking the whole IDE.
--- 4. The original tx_listener uses unbounded `wait until RXD = '0'`/`= '1'`
---    statements; if the design hangs in reset, the testbench hangs too,
---    leaving xsim chewing memory until the user force-quits.
+-- Design choices:
+--   * Counted 125 MHz clock so the simulation has a hard upper bound and
+--     terminates naturally even if `std.env.finish` is ignored.
+--   * `std.env.finish` (not `stop`) so xsim cleanly tears down its kernel.
+--   * Bounded `wait until ... for` calls in the UART listener prevent
+--     deadlocks if the design ever stops toggling RXD.
+--   * Default run length: 50 us (long enough for the "hello_world" TX
+--     burst plus a couple of host bytes); raise STOP_AT_US to extend.
+--   * NO VHDL-2008 external names.  Vivado's xelab is known to segfault
+--     on Windows when external names cross VHDL-2008 / VHDL-93 boundaries
+--     (which we have because module-reference IPI cells must be -93).
+--     The waveform configuration file (sim/tb_top_lite.wcfg) instead
+--     references DUT internal signals via direct hierarchy paths
+--     (e.g. /tb_top_lite/dut/u_ctrl/pc_sig) with display aliases that
+--     match the lab manual reference waveform.
 --
--- What this lite testbench does differently
--- -----------------------------------------
--- * Uses a *counted* clock (CLK_CYCLES) so the simulation has a hard
---   upper bound and naturally terminates even if `finish` is not honoured.
--- * Calls `std.env.finish` (not `stop`) to fully exit the simulator process.
--- * Default run length is 50 us (enough to capture full debounce -> reset
---   release, the "hello_world" TX burst, and a couple of host bytes); raise
---   STOP_AT_US to extend.
--- * Bounded `wait until ... for` calls in the UART listener prevent
---   deadlocks if the design ever stops toggling RXD.
--- * Emits the same console trace ([TX] 0x.. and [RX] driving 0x..) so the
---   simulation log is interchangeable with tb_top.vhd's.
---
--- Recommended xsim run-time settings (in Vivado Tcl console):
---   set_property -name {xsim.simulate.runtime}        -value {50us} \
---                -objects [get_filesets sim_1]
---   set_property -name {xsim.simulate.log_all_signals} -value {false} \
---                -objects [get_filesets sim_1]
--- and DO NOT add /tb_top_lite/dut/u_dm/mem or /tb_top_lite/dut/u_ir/mem to
--- the wave window - those are the BRAM models and tracking them is the
--- single biggest WDB amplifier.
+-- DO NOT add /tb_top_lite/dut/u_dm/mem or /tb_top_lite/dut/u_ir/mem to
+-- the wave window - those are the BRAM models with ~1 Mbit of state and
+-- tracking them is what crashes xsim with OOM.
 -------------------------------------------------------------------------------
 
 library IEEE;
@@ -53,7 +29,6 @@ use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.NUMERIC_STD.ALL;
 use STD.TEXTIO.ALL;
 use STD.ENV.ALL;
-use work.regs_pkg.all;
 
 entity tb_top_lite is
     generic (
@@ -72,11 +47,12 @@ architecture sim of tb_top_lite is
     constant CLK_PER   : time    := 8 ns;          -- 125 MHz
     constant BIT_PER   : time    := (1 sec) / BAUD_TB;
 
-    -- Hard upper bound on number of clock edges (ceil(STOP_AT_US * 1us / CLK_PER))
+    -- Hard upper bound on number of clock edges.
     constant CLK_CYCLES : integer := (STOP_AT_US * 1_000) / 8 + 4;
 
     --------------------------------------------------------------------
-    -- DUT boundary signals
+    -- DUT boundary signals (just observe; the wcfg picks the rest of
+    -- the names up directly from the DUT hierarchy)
     --------------------------------------------------------------------
     signal tb_clk : std_logic := '0';
     signal btn_0  : std_logic := '1';
@@ -97,40 +73,7 @@ architecture sim of tb_top_lite is
     signal sim_done : boolean := false;
 
     --------------------------------------------------------------------
-    -- Reference-named monitor signals (see tb_top.vhd for the rationale).
-    --------------------------------------------------------------------
-    signal pc_sig_view : unsigned(15 downto 0);
-    signal ir_view     : std_logic_vector(31 downto 0);
-    signal reg_view    : reg_array_t;
-
-    signal pc          : std_logic_vector(13 downto 0);
-    signal opcode      : std_logic_vector(4 downto 0);
-    signal imm_arg     : std_logic_vector(15 downto 0);
-
-    signal reg1addr    : std_logic_vector(4 downto 0);
-    signal reg2addr    : std_logic_vector(4 downto 0);
-    signal reg3addr    : std_logic_vector(4 downto 0);
-    signal reg1data    : std_logic_vector(15 downto 0);
-    signal reg2data    : std_logic_vector(15 downto 0);
-    signal reg3data    : std_logic_vector(15 downto 0);
-
-    signal controls_0_wr_enR1 : std_logic;
-
-    signal newChar     : std_logic;
-    signal charSend    : std_logic_vector(7 downto 0);
-    signal charRec     : std_logic_vector(7 downto 0);
-
-    signal fbWr_en     : std_logic;
-    signal fbAddr1     : std_logic_vector(11 downto 0);
-    signal fbDin1      : std_logic_vector(15 downto 0);
-    signal fbDout1     : std_logic_vector(15 downto 0);
-
-    signal tb_vga_r    : std_logic_vector(4 downto 0);
-    signal tb_vga_g    : std_logic_vector(5 downto 0);
-    signal tb_vga_b    : std_logic_vector(4 downto 0);
-
-    --------------------------------------------------------------------
-    -- Helper: hex nibble character
+    -- Helpers
     --------------------------------------------------------------------
     function nibble2hex(n : integer) return character is
         constant LUT : string(1 to 16) := "0123456789ABCDEF";
@@ -172,38 +115,6 @@ begin
         );
 
     --------------------------------------------------------------------
-    -- VHDL-2008 external-name views into DUT internals (lab-reference
-    -- waveform names without changing any synthesisable code).
-    --------------------------------------------------------------------
-    pc_sig_view <= << signal .tb_top_lite.dut.u_ctrl.pc_sig : unsigned(15 downto 0) >>;
-    ir_view     <= << signal .tb_top_lite.dut.u_ctrl.ir     : std_logic_vector(31 downto 0) >>;
-    reg_view    <= << signal .tb_top_lite.dut.u_regs.mem    : reg_array_t >>;
-
-    pc       <= std_logic_vector(pc_sig_view(13 downto 0));
-    opcode   <= ir_view(31 downto 27);
-    imm_arg  <= ir_view(16 downto  1);
-
-    reg1addr <= ir_view(26 downto 22);
-    reg2addr <= ir_view(21 downto 17);
-    reg3addr <= ir_view(16 downto 12);
-    reg1data <= reg_view(to_integer(unsigned(reg1addr)));
-    reg2data <= reg_view(to_integer(unsigned(reg2addr)));
-    reg3data <= reg_view(to_integer(unsigned(reg3addr)));
-
-    controls_0_wr_enR1 <= << signal .tb_top_lite.dut.u_ctrl.wr_enR1 : std_logic >>;
-    newChar  <= << signal .tb_top_lite.dut.u_newChar  : std_logic >>;
-    charSend <= << signal .tb_top_lite.dut.u_charSend : std_logic_vector(7 downto 0) >>;
-    charRec  <= << signal .tb_top_lite.dut.u_charRec  : std_logic_vector(7 downto 0) >>;
-    fbWr_en  <= << signal .tb_top_lite.dut.fb_we      : std_logic >>;
-    fbAddr1  <= << signal .tb_top_lite.dut.fb_addr1   : std_logic_vector(11 downto 0) >>;
-    fbDin1   <= << signal .tb_top_lite.dut.fb_dout1   : std_logic_vector(15 downto 0) >>;
-    fbDout1  <= << signal .tb_top_lite.dut.fb_din     : std_logic_vector(15 downto 0) >>;
-
-    tb_vga_r <= vga_r;
-    tb_vga_g <= vga_g;
-    tb_vga_b <= vga_b;
-
-    --------------------------------------------------------------------
     -- Counted 125 MHz clock - terminates after CLK_CYCLES toggles so the
     -- simulator naturally drains even if std.env.finish is ignored.
     --------------------------------------------------------------------
@@ -220,7 +131,7 @@ begin
     end process;
 
     --------------------------------------------------------------------
-    -- Active-high reset pulse on btn_0 (1 us, same as tb_top.vhd)
+    -- Active-high reset pulse on btn_0 (1 us)
     --------------------------------------------------------------------
     rst_gen : process
     begin
@@ -234,11 +145,10 @@ begin
     -- Passive UART receiver - bounded waits prevent deadlock.
     --------------------------------------------------------------------
     tx_listener : process
-        variable l       : line;
-        variable d       : std_logic_vector(7 downto 0);
+        variable l         : line;
+        variable d         : std_logic_vector(7 downto 0);
         variable timed_out : boolean;
     begin
-        -- Wait for the line to settle high after reset (bounded).
         if RXD /= '1' then
             wait until RXD = '1' for 5 us;
         end if;
@@ -246,8 +156,6 @@ begin
         loop
             exit when sim_done;
 
-            -- Wait for start bit, but with a long bounded timeout so we
-            -- never block the simulator forever.
             wait until RXD = '0' for STOP_AT_US * 1 us;
             timed_out := (RXD /= '0');
             exit when timed_out or sim_done;
