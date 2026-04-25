@@ -35,13 +35,17 @@ entity uproc_top_level is
     );
     Port (
         clk    : in  std_logic;
-        btn    : in  std_logic;            -- active-high reset button
+        btn_0  : in  std_logic;            -- active-high reset button
 
-        -- UART. Port names match the Pmod silkscreen convention used in the
-        -- Lab 5 BD: `tx` is the Pmod's TX line (FPGA INPUT, host -> FPGA),
-        -- `rx` is the Pmod's RX line (FPGA OUTPUT, FPGA -> host).
-        tx     : in  std_logic;
-        rx     : out std_logic;
+        -- Pmod USBUART (silkscreen names per the lab manual reference BD).
+        --   TXD = host's TXD pin, FPGA INPUT  (host -> FPGA)
+        --   RXD = host's RXD pin, FPGA OUTPUT (FPGA -> host)
+        --   CTS = host's CTS pin, FPGA OUTPUT, tied low (always clear)
+        --   RTS = host's RTS pin, FPGA INPUT, ignored
+        TXD    : in  std_logic;
+        RXD    : out std_logic;
+        RTS    : in  std_logic;
+        CTS    : out std_logic;
 
         -- Pmod VGA. We expose the full 5-6-5 channels straight out of
         -- pixel_pusher (matches the lab manual BD). The XDC connects only
@@ -114,7 +118,11 @@ begin
     ----------------------------------------------------------------------
     u_dbn : entity work.debounce
         generic map (STABLE => 1250000)
-        port map ( clk => clk, btn => btn, dbn => rst );
+        port map ( clk => clk, btn => btn_0, dbn => rst );
+
+    -- Tie CTS low: FPGA is always clear-to-send to the host.
+    -- RTS is read but unused.
+    CTS <= '0';
 
     u_ckcpu : entity work.clock_div
         generic map (DIV => 1)
@@ -219,14 +227,15 @@ begin
     ----------------------------------------------------------------------
     -- UART (counter-based bit timing)
     ----------------------------------------------------------------------
-    -- Crossed UART wiring: external `tx` (Pmod TX, FPGA in) -> uart.rx
-    --                       external `rx` (Pmod RX, FPGA out) <- uart.tx
+    -- Crossed UART wiring (lab manual convention):
+    --   TXD external (Pmod TX, FPGA in) -> uart.rx
+    --   uart.tx -> RXD external (Pmod RX, FPGA out)
     u_uart : entity work.uart
         generic map (CLKS_PER_BIT => UART_DIV)
         port map (
             clk => clk, rst => rst,
             send => u_send, charSend => u_charSend,
             ready => u_ready, newChar => u_newChar, charRec => u_charRec,
-            tx => rx, rx => tx
+            tx => RXD, rx => TXD
         );
 end Structural;

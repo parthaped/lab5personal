@@ -33,14 +33,17 @@ architecture sim of tb_top is
     constant TEXT_COE_PATH : string := "/Users/parthapediredla/lab5/coe/text.coe";
     constant DATA_COE_PATH : string := "/Users/parthapediredla/lab5/coe/data.coe";
 
-    -- Names follow the Pmod silkscreen convention (lab manual style):
-    --   tx_pmod = data line driven by the host's UART (FPGA INPUT)
-    --   rx_pmod = data line driven by the FPGA UART  (FPGA OUTPUT)
-    -- We expose them as `tx` and `rx` here to match the BD external ports.
+    -- Port names match the lab manual reference BD (Pmod silkscreen).
+    --   TXD = host -> FPGA UART RX  (FPGA INPUT)
+    --   RXD = FPGA UART TX -> host  (FPGA OUTPUT)
+    --   CTS = FPGA OUTPUT (tied low by the design)
+    --   RTS = FPGA INPUT  (ignored)
     signal clk    : std_logic := '0';
-    signal btn    : std_logic := '1';
-    signal tx     : std_logic := '1';                       -- host -> FPGA
-    signal rx     : std_logic;                              -- FPGA -> host
+    signal btn_0  : std_logic := '1';
+    signal TXD    : std_logic := '1';                       -- host -> FPGA
+    signal RXD    : std_logic;                              -- FPGA -> host
+    signal RTS    : std_logic := '0';
+    signal CTS    : std_logic;
     signal vga_r  : std_logic_vector(4 downto 0);
     signal vga_g  : std_logic_vector(5 downto 0);
     signal vga_b  : std_logic_vector(4 downto 0);
@@ -66,8 +69,8 @@ begin
             DATA_COE => DATA_COE_PATH
         )
         port map (
-            clk => clk, btn => btn,
-            rx => rx, tx => tx,
+            clk => clk, btn_0 => btn_0,
+            TXD => TXD, RXD => RXD, CTS => CTS, RTS => RTS,
             vga_r => vga_r, vga_g => vga_g, vga_b => vga_b,
             vga_hs => vga_hs, vga_vs => vga_vs
         );
@@ -88,28 +91,28 @@ begin
     --------------------------------------------------------------------
     rst_gen : process
     begin
-        btn <= '1';
+        btn_0 <= '1';
         wait for 1 us;
-        btn <= '0';
+        btn_0 <= '0';
         wait;
     end process;
 
     --------------------------------------------------------------------
     -- TX listener: prints every byte the FPGA UART transmits.
-    -- The FPGA UART output appears on the rx_pmod line (port `rx`).
+    -- The FPGA UART output appears on the RXD line.
     --------------------------------------------------------------------
     tx_listener : process
         variable l : line;
         variable d : std_logic_vector(7 downto 0);
     begin
-        if rx /= '1' then
-            wait until rx = '1';
+        if RXD /= '1' then
+            wait until RXD = '1';
         end if;
         loop
-            wait until rx = '0';
+            wait until RXD = '0';
             wait for BIT_PER + BIT_PER / 2;
             for i in 0 to 7 loop
-                d(i) := rx;
+                d(i) := RXD;
                 wait for BIT_PER;
             end loop;
             wait for BIT_PER / 2;
@@ -121,14 +124,14 @@ begin
             end if;
             writeline(output, l);
 
-            if rx /= '1' then
-                wait until rx = '1';
+            if RXD /= '1' then
+                wait until RXD = '1';
             end if;
         end loop;
     end process;
 
     --------------------------------------------------------------------
-    -- RX driver: drives the host->FPGA line (port `tx`).
+    -- RX driver: drives the host->FPGA line (TXD).
     --------------------------------------------------------------------
     rx_driver : process
         procedure send_byte (b : std_logic_vector(7 downto 0)) is
@@ -137,17 +140,17 @@ begin
             write(l, string'("[RX] driving 0x"));
             hwrite(l, b);
             writeline(output, l);
-            tx <= '0';                          -- start bit
+            TXD <= '0';                         -- start bit
             wait for BIT_PER;
             for i in 0 to 7 loop
-                tx <= b(i);
+                TXD <= b(i);
                 wait for BIT_PER;
             end loop;
-            tx <= '1';                          -- stop bit
+            TXD <= '1';                         -- stop bit
             wait for BIT_PER;
         end procedure;
     begin
-        tx <= '1';
+        TXD <= '1';
         wait for 35 us;                         -- let TX finish "hello_world"
         send_byte(x"41");                       -- 'A'
         wait for 40 us;

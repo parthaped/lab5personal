@@ -86,23 +86,36 @@ set_property -dict [list \
 ] [get_bd_cells dMem]
 
 # --------- 5. external ports ---------
-# UART port names match the Pmod silkscreen convention (lab manual style):
-#   tx external port = wire labelled "tx" on the Pmod (i.e. Pmod's TX, FPGA INPUT)
-#   rx external port = wire labelled "rx" on the Pmod (i.e. Pmod's RX, FPGA OUTPUT)
-# This is why they appear "crossed" against the uart cell's tx/rx pins.
+# Names match the Pmod USBUART silkscreen convention used in the lab manual
+# reference BD:
+#   TXD = Pmod's TXD pin (FPGA INPUT, host -> FPGA)
+#   RXD = Pmod's RXD pin (FPGA OUTPUT, FPGA -> host)
+#   CTS = Pmod's CTS pin (FPGA OUTPUT, tied low so the host is always clear)
+#   RTS = Pmod's RTS pin (FPGA INPUT, ignored - host is always ready)
 #
-# VGA outputs are 5-6-5 directly out of pixel_pusher, matching the lab BD
-# (no slice IPs in the diagram). Pmod VGA is physically 4-4-4 - the XDC maps
-# the top 4 bits of each channel and leaves the LSB(s) unconstrained.
+# btn is named btn_0 to match the lab BD (Vivado's auto-rename convention
+# when "Make External" is used on a single-bit pin).
+#
+# VGA outputs are 5-6-5 straight out of pixel_pusher (no slice IPs in the
+# reference BD). The XDC maps the top 4 bits of each channel to Pmod VGA
+# pins; the LSBs are intentionally unconstrained.
 create_bd_port -dir I -type clk clk
-create_bd_port -dir I btn
-create_bd_port -dir I tx
-create_bd_port -dir O rx
+create_bd_port -dir I btn_0
+create_bd_port -dir I TXD
+create_bd_port -dir O RXD
+create_bd_port -dir I RTS
+create_bd_port -dir O CTS
 create_bd_port -dir O -from 4 -to 0 vga_r
 create_bd_port -dir O -from 5 -to 0 vga_g
 create_bd_port -dir O -from 4 -to 0 vga_b
 create_bd_port -dir O vga_hs
 create_bd_port -dir O vga_vs
+
+# CTS is held low (FPGA is always ready to receive). Use an xlconstant IP.
+create_bd_cell -type ip -vlnv xilinx.com:ip:xlconstant cts_low
+set_property -dict [list \
+    CONFIG.CONST_WIDTH {1} \
+    CONFIG.CONST_VAL {0}] [get_bd_cells cts_low]
 
 # --------- 6. wiring ---------
 proc cn {a b} { connect_bd_net $a $b }
@@ -121,7 +134,7 @@ cn [get_bd_ports clk]                      [get_bd_pins uart_inst/clk]
 cn [get_bd_ports clk]                      [get_bd_pins irMem/clka]
 cn [get_bd_ports clk]                      [get_bd_pins dMem/clka]
 
-cn [get_bd_ports btn]                      [get_bd_pins debounce_inst/btn]
+cn [get_bd_ports btn_0]                    [get_bd_pins debounce_inst/btn]
 cn [get_bd_pins debounce_inst/dbn]         [get_bd_pins clock_div_cpu/rst]
 cn [get_bd_pins debounce_inst/dbn]         [get_bd_pins clock_div_25_inst/rst]
 cn [get_bd_pins debounce_inst/dbn]         [get_bd_pins controls_inst/rst]
@@ -195,10 +208,13 @@ cn [get_bd_pins controls_inst/charSend]    [get_bd_pins uart_inst/charSend]
 cn [get_bd_pins uart_inst/ready]           [get_bd_pins controls_inst/ready]
 cn [get_bd_pins uart_inst/newChar]         [get_bd_pins controls_inst/newChar]
 cn [get_bd_pins uart_inst/charRec]         [get_bd_pins controls_inst/charRec]
-# Crossed: external "tx" port is the Pmod's TX line (FPGA INPUT) feeding uart.rx
-#          external "rx" port is the Pmod's RX line (FPGA OUTPUT) driven by uart.tx
-cn [get_bd_ports tx]                       [get_bd_pins uart_inst/rx]
-cn [get_bd_pins uart_inst/tx]              [get_bd_ports rx]
+# UART crossed wiring (lab manual convention):
+#   TXD external (Pmod TX, FPGA in) -> uart.rx
+#   uart.tx -> RXD external (Pmod RX, FPGA out)
+cn [get_bd_ports TXD]                      [get_bd_pins uart_inst/rx]
+cn [get_bd_pins uart_inst/tx]              [get_bd_ports RXD]
+# CTS held low (always clear-to-send to host). RTS is ignored (no pin to wire).
+cn [get_bd_pins cts_low/dout]              [get_bd_ports CTS]
 
 # --------- 7. validate, layout, wrap, save ---------
 regenerate_bd_layout

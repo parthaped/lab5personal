@@ -16,22 +16,22 @@ set_property -dict { PACKAGE_PIN K17 IOSTANDARD LVCMOS33 } [get_ports clk]
 create_clock -name sys_clk -period 8.000 [get_ports clk]
 
 ###############################################################################
-# Reset button - BTN0
+# Reset button - BTN0  (named btn_0 to match the lab BD)
 ###############################################################################
-set_property -dict { PACKAGE_PIN K18 IOSTANDARD LVCMOS33 } [get_ports btn]
+set_property -dict { PACKAGE_PIN K18 IOSTANDARD LVCMOS33 } [get_ports btn_0]
 
 ###############################################################################
-# UART on Pmod JE  (Pmod USBUART module).
-#
-# Port names follow the Pmod silkscreen:
-#   port "tx" = the Pmod's TX line (FPGA INPUT, JE3)  - data from host
-#   port "rx" = the Pmod's RX line (FPGA OUTPUT, JE2) - data to host
-#
-# This matches the Lab 5 BD diagram, where the external "tx" port is wired
-# to the uart cell's "rx" pin (and vice-versa).
+# UART on Pmod JE  (Pmod USBUART module). Port names match the Pmod
+# silkscreen and the lab manual reference BD:
+#   TXD = Pmod's TXD pin (JE3, FPGA INPUT, host -> FPGA)
+#   RXD = Pmod's RXD pin (JE2, FPGA OUTPUT, FPGA -> host)
+#   CTS = Pmod's CTS pin (JE4, FPGA OUTPUT, tied low)
+#   RTS = Pmod's RTS pin (JE1, FPGA INPUT, ignored)
 ###############################################################################
-set_property -dict { PACKAGE_PIN J15 IOSTANDARD LVCMOS33 } [get_ports tx]   ;# JE3, FPGA in
-set_property -dict { PACKAGE_PIN W16 IOSTANDARD LVCMOS33 } [get_ports rx]   ;# JE2, FPGA out
+set_property -dict { PACKAGE_PIN J15 IOSTANDARD LVCMOS33 } [get_ports TXD] ;# JE3
+set_property -dict { PACKAGE_PIN W16 IOSTANDARD LVCMOS33 } [get_ports RXD] ;# JE2
+set_property -dict { PACKAGE_PIN H15 IOSTANDARD LVCMOS33 } [get_ports CTS] ;# JE4
+set_property -dict { PACKAGE_PIN V12 IOSTANDARD LVCMOS33 } [get_ports RTS] ;# JE1
 
 ###############################################################################
 # Pmod VGA - hardware is 4+4+4 RGB but pixel_pusher emits 5+6+5.
