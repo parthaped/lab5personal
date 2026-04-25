@@ -253,9 +253,30 @@ add_files -norecurse $wrapper
 set_property top "${bd_name}_wrapper" [current_fileset]
 update_compile_order -fileset sources_1
 
+# CRITICAL: exclude the BD and its wrapper from SIMULATION.
+# Both the BD (auto-generates xil_defaultlib::uproc_top_level) and the
+# standalone src/uproc_top_level.vhd (also xil_defaultlib::uproc_top_level)
+# would otherwise be compiled into sim_1, producing a duplicate-entity
+# elaboration that crashes xelab on Windows (Vivado closes with no error).
+# Simulation always uses the standalone VHDL via tb_top[_lite]; synthesis
+# always uses the BD wrapper.  This split is what keeps sim and synth
+# self-consistent without renaming the BD.
+foreach sim_excluded [list \
+    "$bd_name.bd" \
+    "${bd_name}_wrapper.vhd" \
+] {
+    set f [get_files -quiet $sim_excluded]
+    if {[llength $f] > 0} {
+        set_property used_in_simulation false $f
+    }
+}
+update_compile_order -fileset sim_1
+
 puts "===================================================================="
 puts "Block design '$bd_name' built and validated."
 puts "Wrapper: ${bd_name}_wrapper"
+puts "BD + wrapper marked used_in_simulation=false (avoids xelab"
+puts "duplicate-entity crash with src/uproc_top_level.vhd)."
 puts ""
 puts "Next: source scripts/run_sim.tcl  to launch the testbench"
 puts "      or: launch_runs synth_1 -jobs 4 ; wait_on_run synth_1"
