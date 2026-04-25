@@ -71,6 +71,32 @@ foreach f $design_files {
     }
 }
 
+# Mark the simulation-only sources so they are NEVER pulled into synthesis
+# or implementation.  Why this matters:
+#   * src/uproc_top_level.vhd is a pure-VHDL structural top used ONLY by
+#     the testbench.  Synthesis must use the BD wrapper (uproc_top_level_wrapper),
+#     not this file.  Leaving it enabled in synthesis makes Vivado pick the
+#     wrong "uproc_top_level" (name collides with the BD design) and pulls
+#     in the un-synthesisable irMem.vhd / dMem.vhd below.
+#   * src/irMem.vhd / src/dMem.vhd use VHDL TEXTIO (file_open + readline)
+#     to load the COE at elaboration time.  TEXTIO is a simulation-only
+#     construct - Vivado synth tries to open "text.coe" with a relative
+#     path, fails, and then errors out with mismatched array sizes when
+#     the empty rom assignment doesn't match dout's width.
+#     Synthesis instead uses the Block Memory Generator IPs created in
+#     build_block_design.tcl, which load the COE through CONFIG.Coe_File.
+set sim_only_files [list \
+    "$proj_dir/src/uproc_top_level.vhd" \
+    "$proj_dir/src/irMem.vhd" \
+    "$proj_dir/src/dMem.vhd" \
+]
+foreach f $sim_only_files {
+    if {[file exists $f]} {
+        set_property used_in_synthesis     false [get_files $f]
+        set_property used_in_implementation false [get_files $f]
+    }
+}
+
 # Add COE files to the project so the irMem/dMem TEXTIO loaders can find them.
 foreach coe_path [list "$proj_dir/coe/text.coe" "$proj_dir/coe/data.coe"] {
     if {[file exists $coe_path]} {
@@ -145,8 +171,11 @@ set_property generic [list \
     "DATA_COE=$data_coe_abs" \
 ] [get_filesets sim_1]
 
-# Set the synthesis top.
-set_property top uproc_top_level [get_filesets sources_1]
+# NOTE: the synthesis top is intentionally NOT set here.  It will be set to
+# `uproc_top_level_wrapper` by build_block_design.tcl after the BD wrapper
+# is generated.  Setting it now to "uproc_top_level" would resolve to the
+# simulation-only VHDL entity (excluded from synth above) which would then
+# fail synthesis with un-synthesisable TEXTIO COE loaders.
 
 update_compile_order -fileset sources_1
 update_compile_order -fileset sim_1
@@ -155,17 +184,20 @@ puts ""
 puts "===================================================================="
 puts "Project '$proj_name' created at $proj_dir/$proj_name"
 puts "Part:        $part"
-puts "Synth top:   uproc_top_level"
+puts "Synth top:   <unset> -- will be set to uproc_top_level_wrapper by"
+puts "             scripts/build_block_design.tcl"
 puts "Sim top:     tb_top_lite (override with: set_property top tb_top \[get_filesets sim_1\])"
 puts ""
 puts "Next steps:"
-puts "  1. Optional: launch behavioral sim:"
-puts "       launch_simulation"
-puts "  2. Run synthesis:"
+puts "  1. Build the block design + wrapper (REQUIRED before synth):"
+puts "       source scripts/build_block_design.tcl"
+puts "  2. Optional: launch behavioral sim:"
+puts "       source scripts/run_sim.tcl"
+puts "  3. Run synthesis:"
 puts "       launch_runs synth_1 -jobs 4"
 puts "       wait_on_run synth_1"
-puts "  3. Run implementation + bitstream:"
+puts "  4. Run implementation + bitstream:"
 puts "       launch_runs impl_1 -to_step write_bitstream -jobs 4"
 puts "       wait_on_run impl_1"
-puts "  4. Open hardware manager and program the Zybo Z7-10."
+puts "  5. Open hardware manager and program the Zybo Z7-10."
 puts "===================================================================="
