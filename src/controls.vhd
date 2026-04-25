@@ -64,31 +64,37 @@ entity controls is
         -- UART
         ready          : in  std_logic;
         newChar        : in  std_logic;
-        send           : out std_logic;
+        tx_send        : out std_logic;
         charRec        : in  std_logic_vector(7 downto 0);
         charSend       : out std_logic_vector(7 downto 0)
     );
 end controls;
 
 architecture Behavioral of controls is
+    -- State names follow the Lab 5 reference waveform vocabulary so the
+    -- xsim "ps" row reads exactly like the lecture slide:
+    --   fetch / fetchl / decode / Rops / Rops2 / Calc{,2,3} /
+    --   Iops / Iops2 / Jops / beq / bne / ori / lw{,2,3} / sw /
+    --   jmp / jal / clrscr / send{,2,3} / recv /
+    --   rpix{,2,3} / wpix{,2} / jr{,2} / store / finish
     type state_t is (
-        sFetch,      sIrWait,     sDecode,
-        sRops,       sRopsRd,
-        sCalcDrive,  sCalcSettle, sCalcWait,
-        sIops,       sIopsRd,
-        sJops,
-        sEquals,     sNequal,     sOri,
-        sLwDrive,    sLwSettle,   sLwWait,    sSw,
-        sJmp,        sJal,        sClrscr,
-        sSendDrive,  sSendStart,  sSendWait,
-        sRecv,
-        sRpixDrive,  sRpixSettle, sRpixWait,
-        sWpixRd,     sWpix,
-        sJrRd,       sJrAct,
-        sStore,      sFinish
+        fetch,    fetchl,   decode,
+        Rops,     Rops2,
+        Calc,     Calc2,    Calc3,
+        Iops,     Iops2,
+        Jops,
+        beq,      bne,      ori,
+        lw,       lw2,      lw3,      sw,
+        jmp,      jal,      clrscr,
+        send,     send2,    send3,
+        recv,
+        rpix,     rpix2,    rpix3,
+        wpix,     wpix2,
+        jr,       jr2,
+        store,    finish
     );
 
-    signal state   : state_t := sFetch;
+    signal state   : state_t := fetch;
 
     signal ir      : std_logic_vector(31 downto 0) := (others => '0');
     signal pc_sig  : unsigned(15 downto 0)         := (others => '0');
@@ -99,25 +105,32 @@ architecture Behavioral of controls is
     signal op_low  : std_logic_vector(2 downto 0);
     signal imm16   : std_logic_vector(15 downto 0);
     signal immJ    : std_logic_vector(15 downto 0);
+
+    -- The state literal `send` would clash with a port called `send`, so
+    -- the port is named `tx_send` and the strobe is driven via this signal
+    -- from inside the synchronous process.
+    signal send_strobe : std_logic := '0';
 begin
     opcode <= ir(31 downto 27);
     op_low <= ir(29 downto 27);
     imm16  <= ir(16 downto 1);
     immJ   <= ir(26 downto 11);
 
+    tx_send <= send_strobe;
+
     process(clk)
     begin
         if rising_edge(clk) then
             -- Per-cycle defaults so all strobes auto de-assert.
-            wr_enR1 <= '0';
-            wr_enR2 <= '0';
-            d_wr_en <= '0';
-            fbWr_en <= '0';
-            fbRST   <= '0';
-            send    <= '0';
+            wr_enR1     <= '0';
+            wr_enR2     <= '0';
+            d_wr_en     <= '0';
+            fbWr_en     <= '0';
+            fbRST       <= '0';
+            send_strobe <= '0';
 
             if rst = '1' then
-                state   <= sFetch;
+                state   <= fetch;
                 pc_sig  <= (others => '0');
                 ir      <= (others => '0');
                 alu_res <= (others => '0');
@@ -135,144 +148,144 @@ begin
                     -------------------------------------------------------
                     -- Fetch / Decode (sync ROM => 2 cycle latency)
                     -------------------------------------------------------
-                    when sFetch =>
+                    when fetch =>
                         irAddr <= std_logic_vector(pc_sig(13 downto 0));
-                        state  <= sIrWait;
+                        state  <= fetchl;
 
-                    when sIrWait =>
-                        state <= sDecode;
+                    when fetchl =>
+                        state <= decode;
 
-                    when sDecode =>
+                    when decode =>
                         ir      <= irWord;
                         pc_sig  <= pc_sig + 1;
                         regwD1  <= std_logic_vector(pc_sig + 1);
                         rID1    <= "00001";
                         wr_enR1 <= '1';
                         case irWord(31 downto 30) is
-                            when "00" | "01" => state <= sRops;
-                            when "10"        => state <= sIops;
-                            when others      => state <= sJops;
+                            when "00" | "01" => state <= Rops;
+                            when "10"        => state <= Iops;
+                            when others      => state <= Jops;
                         end case;
 
                     -------------------------------------------------------
                     -- R-type
                     -------------------------------------------------------
-                    when sRops =>
+                    when Rops =>
                         rID1  <= ir(21 downto 17);
                         rID2  <= ir(16 downto 12);
-                        state <= sRopsRd;
+                        state <= Rops2;
 
-                    when sRopsRd =>
+                    when Rops2 =>
                         case opcode is
                             when "01101" =>            -- jr
                                 rID1  <= ir(26 downto 22);
-                                state <= sJrRd;
+                                state <= jr;
                             when "01100" =>            -- recv
-                                state <= sRecv;
+                                state <= recv;
                             when "01111" =>            -- rpix
-                                state <= sRpixDrive;
+                                state <= rpix;
                             when "01110" =>            -- wpix
                                 rID1  <= ir(26 downto 22);
                                 rID2  <= ir(21 downto 17);
-                                state <= sWpixRd;
+                                state <= wpix;
                             when "01011" =>            -- send
                                 rID1  <= ir(26 downto 22);
-                                state <= sSendDrive;
+                                state <= send;
                             when others =>             -- calc
-                                state <= sCalcDrive;
+                                state <= Calc;
                         end case;
 
-                    when sCalcDrive =>
+                    when Calc =>
                         aluA  <= regrD1;
                         aluB  <= regrD2;
                         aluOp <= ir(30 downto 27);
-                        state <= sCalcSettle;
+                        state <= Calc2;
 
-                    when sCalcSettle =>
-                        state <= sCalcWait;
+                    when Calc2 =>
+                        state <= Calc3;
 
-                    when sCalcWait =>
+                    when Calc3 =>
                         alu_res <= aluResult;
-                        state   <= sStore;
+                        state   <= store;
 
                     -------------------------------------------------------
                     -- I-type
                     -------------------------------------------------------
-                    when sIops =>
+                    when Iops =>
                         rID1  <= ir(21 downto 17);
                         rID2  <= ir(26 downto 22);
-                        state <= sIopsRd;
+                        state <= Iops2;
 
-                    when sIopsRd =>
+                    when Iops2 =>
                         case op_low is
-                            when "000"  => state <= sEquals;
-                            when "001"  => state <= sNequal;
-                            when "010"  => state <= sOri;
-                            when "011"  => state <= sLwDrive;
-                            when others => state <= sSw;
+                            when "000"  => state <= beq;
+                            when "001"  => state <= bne;
+                            when "010"  => state <= ori;
+                            when "011"  => state <= lw;
+                            when others => state <= sw;
                         end case;
 
-                    when sOri =>
+                    when ori =>
                         alu_res <= regrD1 or imm16;
-                        state   <= sStore;
+                        state   <= store;
 
-                    when sLwDrive =>
+                    when lw =>
                         dAddr <= std_logic_vector(
                                    resize(unsigned(regrD1), 15) +
                                    resize(unsigned(imm16),  15));
-                        state <= sLwSettle;
+                        state <= lw2;
 
-                    when sLwSettle =>
-                        state <= sLwWait;
+                    when lw2 =>
+                        state <= lw3;
 
-                    when sLwWait =>
+                    when lw3 =>
                         alu_res <= dIn;
-                        state   <= sStore;
+                        state   <= store;
 
-                    when sEquals =>
+                    when beq =>
                         if regrD1 = regrD2 then
                             pc_sig  <= unsigned(imm16);
                             regwD1  <= imm16;
                             rID1    <= "00001";
                             wr_enR1 <= '1';
                         end if;
-                        state <= sFinish;
+                        state <= finish;
 
-                    when sNequal =>
+                    when bne =>
                         if regrD1 /= regrD2 then
                             pc_sig  <= unsigned(imm16);
                             regwD1  <= imm16;
                             rID1    <= "00001";
                             wr_enR1 <= '1';
                         end if;
-                        state <= sFinish;
+                        state <= finish;
 
-                    when sSw =>
+                    when sw =>
                         dAddr <= std_logic_vector(
                                    resize(unsigned(regrD1), 15) +
                                    resize(unsigned(imm16),  15));
                         dOut    <= regrD2;
                         d_wr_en <= '1';
-                        state   <= sFinish;
+                        state   <= finish;
 
                     -------------------------------------------------------
                     -- J-type
                     -------------------------------------------------------
-                    when sJops =>
+                    when Jops =>
                         case opcode is
-                            when "11000" => state <= sJmp;
-                            when "11001" => state <= sJal;
-                            when others  => state <= sClrscr;
+                            when "11000" => state <= jmp;
+                            when "11001" => state <= jal;
+                            when others  => state <= clrscr;
                         end case;
 
-                    when sJmp =>
+                    when jmp =>
                         pc_sig  <= unsigned(immJ);
                         regwD1  <= immJ;
                         rID1    <= "00001";
                         wr_enR1 <= '1';
-                        state   <= sFinish;
+                        state   <= finish;
 
-                    when sJal =>
+                    when jal =>
                         regwD1  <= std_logic_vector(pc_sig);
                         rID1    <= "00010";
                         wr_enR1 <= '1';
@@ -280,99 +293,99 @@ begin
                         regwD2  <= immJ;
                         rID2    <= "00001";
                         wr_enR2 <= '1';
-                        state   <= sFinish;
+                        state   <= finish;
 
-                    when sClrscr =>
+                    when clrscr =>
                         fbRST <= '1';
-                        state <= sFinish;
+                        state <= finish;
 
                     -------------------------------------------------------
                     -- ASIP - send. Drive a one-cycle send pulse to the UART
                     -- (which is asynchronous to en), then wait for ready=1
                     -- to indicate the byte left the shift register.
                     -------------------------------------------------------
-                    when sSendDrive =>
+                    when send =>
                         -- Wait for UART to be idle, then drive send for one cycle.
                         charSend <= regrD1(7 downto 0);
                         if ready = '1' then
-                            send  <= '1';
-                            state <= sSendStart;
+                            send_strobe <= '1';
+                            state <= send2;
                         end if;
 
-                    when sSendStart =>
+                    when send2 =>
                         -- UART captured: ready will drop to 0.
                         if ready = '0' then
-                            state <= sSendWait;
+                            state <= send3;
                         end if;
 
-                    when sSendWait =>
+                    when send3 =>
                         -- UART finished: ready returns to 1.
                         if ready = '1' then
-                            state <= sFinish;
+                            state <= finish;
                         end if;
 
                     -------------------------------------------------------
                     -- ASIP - recv: block until UART announces newChar.
                     -------------------------------------------------------
-                    when sRecv =>
+                    when recv =>
                         if newChar = '1' then
                             alu_res <= x"00" & charRec;
-                            state   <= sStore;
+                            state   <= store;
                         end if;
 
                     -------------------------------------------------------
                     -- ASIP - rpix (sync read framebuffer)
                     -------------------------------------------------------
-                    when sRpixDrive =>
+                    when rpix =>
                         fbAddr1 <= regrD1(11 downto 0);
-                        state   <= sRpixSettle;
+                        state   <= rpix2;
 
-                    when sRpixSettle =>
-                        state <= sRpixWait;
+                    when rpix2 =>
+                        state <= rpix3;
 
-                    when sRpixWait =>
+                    when rpix3 =>
                         alu_res <= fbDin1;
-                        state   <= sStore;
+                        state   <= store;
 
                     -------------------------------------------------------
                     -- ASIP - wpix
                     -------------------------------------------------------
-                    when sWpixRd =>
-                        state <= sWpix;
+                    when wpix =>
+                        state <= wpix2;
 
-                    when sWpix =>
+                    when wpix2 =>
                         fbAddr1 <= regrD1(11 downto 0);
                         fbDout1 <= regrD2;
                         fbWr_en <= '1';
-                        state   <= sFinish;
+                        state   <= finish;
 
                     -------------------------------------------------------
                     -- jr
                     -------------------------------------------------------
-                    when sJrRd =>
-                        state <= sJrAct;
+                    when jr =>
+                        state <= jr2;
 
-                    when sJrAct =>
+                    when jr2 =>
                         pc_sig  <= unsigned(regrD1);
                         regwD1  <= regrD1;
                         rID1    <= "00001";
                         wr_enR1 <= '1';
-                        state   <= sFinish;
+                        state   <= finish;
 
                     -------------------------------------------------------
                     -- Common store / finish
                     -------------------------------------------------------
-                    when sStore =>
+                    when store =>
                         regwD1  <= alu_res;
                         rID1    <= ir(26 downto 22);
                         wr_enR1 <= '1';
-                        state   <= sFinish;
+                        state   <= finish;
 
-                    when sFinish =>
-                        state <= sFetch;
+                    when finish =>
+                        state <= fetch;
 
                     when others =>
-                        state <= sFetch;
+                        state <= fetch;
                 end case;
             end if;
         end if;

@@ -153,7 +153,7 @@ begin
             aluA => aluA, aluB => aluB, aluOp => aluOp,
             aluResult => aluResult,
             ready => u_ready, newChar => u_newChar,
-            send => u_send,
+            tx_send => u_send,
             charRec => u_charRec, charSend => u_charSend
         );
 
