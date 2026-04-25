@@ -3,9 +3,9 @@
    <wave_state>
    </wave_state>
    <db_ref_list>
-      <db_ref path="tb_top.wdb" id="1" type="auto">
+      <db_ref path="tb_top_lite.wdb" id="1" type="auto">
          <top_modules>
-            <top_module name="tb_top" />
+            <top_module name="tb_top_lite" />
          </top_modules>
       </db_ref>
    </db_ref_list>
@@ -20,128 +20,128 @@
    </column_width_setting>
    <WVObjectSize size="22" />
 
-   <wvobject fp_name="/tb_top/dut/u_ctrl/state" type="enum">
+   <wvobject fp_name="/tb_top_lite/dut/u_ctrl/state" type="enum">
       <obj_property name="ElementShortName">ps</obj_property>
       <obj_property name="ObjectShortName">ps</obj_property>
    </wvobject>
 
-   <wvobject fp_name="/tb_top/pc" type="array">
+   <wvobject fp_name="/tb_top_lite/pc" type="array">
       <obj_property name="ElementShortName">pc[13:0]</obj_property>
       <obj_property name="ObjectShortName">pc[13:0]</obj_property>
       <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
    </wvobject>
 
-   <wvobject fp_name="/tb_top/opcode" type="array">
+   <wvobject fp_name="/tb_top_lite/opcode" type="array">
       <obj_property name="ElementShortName">opcode[4:0]</obj_property>
       <obj_property name="ObjectShortName">opcode[4:0]</obj_property>
       <obj_property name="Radix">HEXRADIX</obj_property>
    </wvobject>
 
-   <wvobject fp_name="/tb_top/tb_clk" type="logic">
+   <wvobject fp_name="/tb_top_lite/tb_clk" type="logic">
       <obj_property name="ElementShortName">tb_clk</obj_property>
       <obj_property name="ObjectShortName">tb_clk</obj_property>
    </wvobject>
 
-   <wvobject fp_name="/tb_top/tb_vga_r" type="array">
+   <wvobject fp_name="/tb_top_lite/tb_vga_r" type="array">
       <obj_property name="ElementShortName">tb_vga_r[4:0]</obj_property>
       <obj_property name="ObjectShortName">tb_vga_r[4:0]</obj_property>
       <obj_property name="Radix">HEXRADIX</obj_property>
    </wvobject>
 
-   <wvobject fp_name="/tb_top/tb_vga_b" type="array">
+   <wvobject fp_name="/tb_top_lite/tb_vga_b" type="array">
       <obj_property name="ElementShortName">tb_vga_b[4:0]</obj_property>
       <obj_property name="ObjectShortName">tb_vga_b[4:0]</obj_property>
       <obj_property name="Radix">HEXRADIX</obj_property>
    </wvobject>
 
-   <wvobject fp_name="/tb_top/tb_vga_g" type="array">
+   <wvobject fp_name="/tb_top_lite/tb_vga_g" type="array">
       <obj_property name="ElementShortName">tb_vga_g[5:0]</obj_property>
       <obj_property name="ObjectShortName">tb_vga_g[5:0]</obj_property>
       <obj_property name="Radix">HEXRADIX</obj_property>
    </wvobject>
 
-   <wvobject fp_name="/tb_top/reg1addr" type="array">
+   <wvobject fp_name="/tb_top_lite/reg1addr" type="array">
       <obj_property name="ElementShortName">reg1addr[4:0]</obj_property>
       <obj_property name="ObjectShortName">reg1addr[4:0]</obj_property>
       <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
    </wvobject>
 
-   <wvobject fp_name="/tb_top/controls_0_wr_enR1" type="logic">
+   <wvobject fp_name="/tb_top_lite/controls_0_wr_enR1" type="logic">
       <obj_property name="ElementShortName">controls_0_wr_enR1</obj_property>
       <obj_property name="ObjectShortName">controls_0_wr_enR1</obj_property>
    </wvobject>
 
-   <wvobject fp_name="/tb_top/reg2addr" type="array">
+   <wvobject fp_name="/tb_top_lite/reg2addr" type="array">
       <obj_property name="ElementShortName">reg2addr[4:0]</obj_property>
       <obj_property name="ObjectShortName">reg2addr[4:0]</obj_property>
       <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
    </wvobject>
 
-   <wvobject fp_name="/tb_top/reg3addr" type="array">
+   <wvobject fp_name="/tb_top_lite/reg3addr" type="array">
       <obj_property name="ElementShortName">reg3addr[4:0]</obj_property>
       <obj_property name="ObjectShortName">reg3addr[4:0]</obj_property>
       <obj_property name="Radix">UNSIGNEDDECRADIX</obj_property>
    </wvobject>
 
-   <wvobject fp_name="/tb_top/reg1data" type="array">
+   <wvobject fp_name="/tb_top_lite/reg1data" type="array">
       <obj_property name="ElementShortName">reg1data[15:0]</obj_property>
       <obj_property name="ObjectShortName">reg1data[15:0]</obj_property>
       <obj_property name="Radix">HEXRADIX</obj_property>
    </wvobject>
 
-   <wvobject fp_name="/tb_top/reg2data" type="array">
+   <wvobject fp_name="/tb_top_lite/reg2data" type="array">
       <obj_property name="ElementShortName">reg2data[15:0]</obj_property>
       <obj_property name="ObjectShortName">reg2data[15:0]</obj_property>
       <obj_property name="Radix">HEXRADIX</obj_property>
    </wvobject>
 
-   <wvobject fp_name="/tb_top/reg3data" type="array">
+   <wvobject fp_name="/tb_top_lite/reg3data" type="array">
       <obj_property name="ElementShortName">reg3data[15:0]</obj_property>
       <obj_property name="ObjectShortName">reg3data[15:0]</obj_property>
       <obj_property name="Radix">HEXRADIX</obj_property>
    </wvobject>
 
-   <wvobject fp_name="/tb_top/imm_arg" type="array">
+   <wvobject fp_name="/tb_top_lite/imm_arg" type="array">
       <obj_property name="ElementShortName">imm_arg[15:0]</obj_property>
       <obj_property name="ObjectShortName">imm_arg[15:0]</obj_property>
       <obj_property name="Radix">HEXRADIX</obj_property>
    </wvobject>
 
-   <wvobject fp_name="/tb_top/charSend" type="array">
+   <wvobject fp_name="/tb_top_lite/charSend" type="array">
       <obj_property name="ElementShortName">charSend[7:0]</obj_property>
       <obj_property name="ObjectShortName">charSend[7:0]</obj_property>
       <obj_property name="Radix">HEXRADIX</obj_property>
    </wvobject>
 
-   <wvobject fp_name="/tb_top/charRec" type="array">
+   <wvobject fp_name="/tb_top_lite/charRec" type="array">
       <obj_property name="ElementShortName">charRec[7:0]</obj_property>
       <obj_property name="ObjectShortName">charRec[7:0]</obj_property>
       <obj_property name="Radix">HEXRADIX</obj_property>
    </wvobject>
 
-   <wvobject fp_name="/tb_top/newChar" type="logic">
+   <wvobject fp_name="/tb_top_lite/newChar" type="logic">
       <obj_property name="ElementShortName">newChar</obj_property>
       <obj_property name="ObjectShortName">newChar</obj_property>
    </wvobject>
 
-   <wvobject fp_name="/tb_top/fbWr_en" type="logic">
+   <wvobject fp_name="/tb_top_lite/fbWr_en" type="logic">
       <obj_property name="ElementShortName">fbWr_en</obj_property>
       <obj_property name="ObjectShortName">fbWr_en</obj_property>
    </wvobject>
 
-   <wvobject fp_name="/tb_top/fbAddr1" type="array">
+   <wvobject fp_name="/tb_top_lite/fbAddr1" type="array">
       <obj_property name="ElementShortName">fbAddr1[11:0]</obj_property>
       <obj_property name="ObjectShortName">fbAddr1[11:0]</obj_property>
       <obj_property name="Radix">HEXRADIX</obj_property>
    </wvobject>
 
-   <wvobject fp_name="/tb_top/fbDout1" type="array">
+   <wvobject fp_name="/tb_top_lite/fbDout1" type="array">
       <obj_property name="ElementShortName">fbDout1[15:0]</obj_property>
       <obj_property name="ObjectShortName">fbDout1[15:0]</obj_property>
       <obj_property name="Radix">HEXRADIX</obj_property>
    </wvobject>
 
-   <wvobject fp_name="/tb_top/fbDin1" type="array">
+   <wvobject fp_name="/tb_top_lite/fbDin1" type="array">
       <obj_property name="ElementShortName">fbDin1[15:0]</obj_property>
       <obj_property name="ObjectShortName">fbDin1[15:0]</obj_property>
       <obj_property name="Radix">HEXRADIX</obj_property>

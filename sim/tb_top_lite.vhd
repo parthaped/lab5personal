@@ -53,6 +53,7 @@ use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.NUMERIC_STD.ALL;
 use STD.TEXTIO.ALL;
 use STD.ENV.ALL;
+use work.regs_pkg.all;
 
 entity tb_top_lite is
     generic (
@@ -96,6 +97,39 @@ architecture sim of tb_top_lite is
     signal sim_done : boolean := false;
 
     --------------------------------------------------------------------
+    -- Reference-named monitor signals (see tb_top.vhd for the rationale).
+    --------------------------------------------------------------------
+    signal pc_sig_view : unsigned(15 downto 0);
+    signal ir_view     : std_logic_vector(31 downto 0);
+    signal reg_view    : reg_array_t;
+
+    signal pc          : std_logic_vector(13 downto 0);
+    signal opcode      : std_logic_vector(4 downto 0);
+    signal imm_arg     : std_logic_vector(15 downto 0);
+
+    signal reg1addr    : std_logic_vector(4 downto 0);
+    signal reg2addr    : std_logic_vector(4 downto 0);
+    signal reg3addr    : std_logic_vector(4 downto 0);
+    signal reg1data    : std_logic_vector(15 downto 0);
+    signal reg2data    : std_logic_vector(15 downto 0);
+    signal reg3data    : std_logic_vector(15 downto 0);
+
+    signal controls_0_wr_enR1 : std_logic;
+
+    signal newChar     : std_logic;
+    signal charSend    : std_logic_vector(7 downto 0);
+    signal charRec     : std_logic_vector(7 downto 0);
+
+    signal fbWr_en     : std_logic;
+    signal fbAddr1     : std_logic_vector(11 downto 0);
+    signal fbDin1      : std_logic_vector(15 downto 0);
+    signal fbDout1     : std_logic_vector(15 downto 0);
+
+    signal tb_vga_r    : std_logic_vector(4 downto 0);
+    signal tb_vga_g    : std_logic_vector(5 downto 0);
+    signal tb_vga_b    : std_logic_vector(4 downto 0);
+
+    --------------------------------------------------------------------
     -- Helper: hex nibble character
     --------------------------------------------------------------------
     function nibble2hex(n : integer) return character is
@@ -136,6 +170,38 @@ begin
             vga_hs => vga_hs,
             vga_vs => vga_vs
         );
+
+    --------------------------------------------------------------------
+    -- VHDL-2008 external-name views into DUT internals (lab-reference
+    -- waveform names without changing any synthesisable code).
+    --------------------------------------------------------------------
+    pc_sig_view <= << signal .tb_top_lite.dut.u_ctrl.pc_sig : unsigned(15 downto 0) >>;
+    ir_view     <= << signal .tb_top_lite.dut.u_ctrl.ir     : std_logic_vector(31 downto 0) >>;
+    reg_view    <= << signal .tb_top_lite.dut.u_regs.mem    : reg_array_t >>;
+
+    pc       <= std_logic_vector(pc_sig_view(13 downto 0));
+    opcode   <= ir_view(31 downto 27);
+    imm_arg  <= ir_view(16 downto  1);
+
+    reg1addr <= ir_view(26 downto 22);
+    reg2addr <= ir_view(21 downto 17);
+    reg3addr <= ir_view(16 downto 12);
+    reg1data <= reg_view(to_integer(unsigned(reg1addr)));
+    reg2data <= reg_view(to_integer(unsigned(reg2addr)));
+    reg3data <= reg_view(to_integer(unsigned(reg3addr)));
+
+    controls_0_wr_enR1 <= << signal .tb_top_lite.dut.u_ctrl.wr_enR1 : std_logic >>;
+    newChar  <= << signal .tb_top_lite.dut.u_newChar  : std_logic >>;
+    charSend <= << signal .tb_top_lite.dut.u_charSend : std_logic_vector(7 downto 0) >>;
+    charRec  <= << signal .tb_top_lite.dut.u_charRec  : std_logic_vector(7 downto 0) >>;
+    fbWr_en  <= << signal .tb_top_lite.dut.fb_we      : std_logic >>;
+    fbAddr1  <= << signal .tb_top_lite.dut.fb_addr1   : std_logic_vector(11 downto 0) >>;
+    fbDin1   <= << signal .tb_top_lite.dut.fb_dout1   : std_logic_vector(15 downto 0) >>;
+    fbDout1  <= << signal .tb_top_lite.dut.fb_din     : std_logic_vector(15 downto 0) >>;
+
+    tb_vga_r <= vga_r;
+    tb_vga_g <= vga_g;
+    tb_vga_b <= vga_b;
 
     --------------------------------------------------------------------
     -- Counted 125 MHz clock - terminates after CLK_CYCLES toggles so the

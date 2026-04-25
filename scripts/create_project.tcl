@@ -27,8 +27,10 @@ create_project $proj_name "$proj_dir/$proj_name" -part $part
 set_property target_language VHDL [current_project]
 set_property simulator_language Mixed [current_project]
 
-# Add design sources (custom VHDL).
+# Add design sources (custom VHDL).  regs_pkg.vhd must come before
+# regs.vhd so the package is analysed first.
 set design_files [list \
+    "$proj_dir/src/regs_pkg.vhd" \
     "$proj_dir/src/clock_div.vhd" \
     "$proj_dir/src/clock_div_25.vhd" \
     "$proj_dir/src/debounce.vhd" \
@@ -104,9 +106,21 @@ set_property -name {xsim.simulate.runtime}         -value {50us} \
 set_property -name {xsim.simulate.log_all_signals} -value {false} \
     -objects [get_filesets sim_1]
 
-# Add the default wave configuration file (lab manual layout).
-if {[file exists "$proj_dir/sim/tb_top.wcfg"]} {
-    add_files -fileset sim_1 -norecurse "$proj_dir/sim/tb_top.wcfg"
+# Add the default wave configuration files (lab manual layout).  The
+# tb_top_lite layout takes precedence because tb_top_lite is the default
+# sim top, but both are kept in the project so switching tops only needs
+# `set_property xsim.view`.
+foreach wcfg [list \
+    "$proj_dir/sim/tb_top_lite.wcfg" \
+    "$proj_dir/sim/tb_top.wcfg" \
+] {
+    if {[file exists $wcfg]} {
+        add_files -fileset sim_1 -norecurse $wcfg
+    }
+}
+if {[file exists "$proj_dir/sim/tb_top_lite.wcfg"]} {
+    set_property xsim.view "$proj_dir/sim/tb_top_lite.wcfg" [get_filesets sim_1]
+} elseif {[file exists "$proj_dir/sim/tb_top.wcfg"]} {
     set_property xsim.view "$proj_dir/sim/tb_top.wcfg" [get_filesets sim_1]
 }
 
@@ -142,7 +156,7 @@ puts "===================================================================="
 puts "Project '$proj_name' created at $proj_dir/$proj_name"
 puts "Part:        $part"
 puts "Synth top:   uproc_top_level"
-puts "Sim top:     tb_top"
+puts "Sim top:     tb_top_lite (override with: set_property top tb_top \[get_filesets sim_1\])"
 puts ""
 puts "Next steps:"
 puts "  1. Optional: launch behavioral sim:"

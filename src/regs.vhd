@@ -12,6 +12,7 @@
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.NUMERIC_STD.ALL;
+use work.regs_pkg.all;
 
 entity regs is
     Port (
@@ -30,7 +31,8 @@ entity regs is
 end regs;
 
 architecture Behavioral of regs is
-    type reg_array_t is array (0 to 31) of std_logic_vector(15 downto 0);
+    -- reg_array_t lives in work.regs_pkg so that the testbench can
+    -- VHDL-2008 external-name into this signal for waveform debug.
     signal mem : reg_array_t := (others => (others => '0'));
 begin
     process(clk)
