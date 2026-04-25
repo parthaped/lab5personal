@@ -118,7 +118,19 @@ set_property -dict [list \
     CONFIG.CONST_VAL {0}] [get_bd_cells cts_low]
 
 # --------- 6. wiring ---------
-proc cn {a b} { connect_bd_net $a $b }
+# Wrapper around connect_bd_net that hard-fails if either side resolves to
+# an empty pin/port list. Without this, a typo in a pin name silently leaves
+# a wire dangling and validate_bd_design later complains about "missing
+# connections" with no easy way to find which line caused it.
+proc cn {a b} {
+    if {[llength $a] == 0} {
+        error "connect_bd_net: left-hand pin/port list is empty"
+    }
+    if {[llength $b] == 0} {
+        error "connect_bd_net: right-hand pin/port list is empty"
+    }
+    connect_bd_net $a $b
+}
 
 # Clock + reset distribution
 cn [get_bd_ports clk]                      [get_bd_pins clock_div_cpu/clk]
@@ -203,7 +215,10 @@ cn [get_bd_pins controls_inst/d_wr_en]     [get_bd_pins dMem/wea]
 cn [get_bd_pins clock_div_cpu/en]          [get_bd_pins dMem/ena]
 
 # controls <-> uart
-cn [get_bd_pins controls_inst/send]        [get_bd_pins uart_inst/send]
+# NOTE: the controls entity port is `tx_send` (renamed from `send` to avoid
+# clashing with the FSM state literal `send`).  The uart entity still uses
+# `send` on its side.
+cn [get_bd_pins controls_inst/tx_send]     [get_bd_pins uart_inst/send]
 cn [get_bd_pins controls_inst/charSend]    [get_bd_pins uart_inst/charSend]
 cn [get_bd_pins uart_inst/ready]           [get_bd_pins controls_inst/ready]
 cn [get_bd_pins uart_inst/newChar]         [get_bd_pins controls_inst/newChar]
